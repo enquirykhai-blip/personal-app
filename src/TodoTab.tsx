@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useLocalStorage } from "./useLocalStorage";
-import type { Task, TaskCategory, TaskPriority } from "./types";
-import { isOverdue, sortTasks } from "./statsUtils";
+import type { Subtask, Task, TaskCategory, TaskPriority } from "./types";
+import { isOverdue, sortTasks, subtaskProgress } from "./statsUtils";
 
 const CATEGORIES: { value: TaskCategory; label: string; color: string }[] = [
   { value: "personal", label: "Peribadi", color: "bg-accent/15 text-accent" },
@@ -42,6 +42,8 @@ export default function TodoTab() {
   const [filter, setFilter] = useState<Filter>("all");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editDraft, setEditDraft] = useState<EditDraft | null>(null);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [subtaskDraft, setSubtaskDraft] = useState("");
 
   function addTask(e: React.FormEvent) {
     e.preventDefault();
@@ -72,6 +74,37 @@ export default function TodoTab() {
 
   function clearDone() {
     setTasks((prev) => prev.filter((t) => !t.done));
+  }
+
+  function toggleSubtaskPanel(id: string) {
+    setExpandedId(expandedId === id ? null : id);
+    setSubtaskDraft("");
+  }
+
+  function addSubtask(taskId: string) {
+    const trimmed = subtaskDraft.trim();
+    if (!trimmed) return;
+    const subtask: Subtask = { id: crypto.randomUUID(), text: trimmed, done: false };
+    setTasks((prev) =>
+      prev.map((t) => (t.id === taskId ? { ...t, subtasks: [...(t.subtasks ?? []), subtask] } : t)),
+    );
+    setSubtaskDraft("");
+  }
+
+  function toggleSubtask(taskId: string, subtaskId: string) {
+    setTasks((prev) =>
+      prev.map((t) =>
+        t.id === taskId
+          ? { ...t, subtasks: (t.subtasks ?? []).map((s) => (s.id === subtaskId ? { ...s, done: !s.done } : s)) }
+          : t,
+      ),
+    );
+  }
+
+  function deleteSubtask(taskId: string, subtaskId: string) {
+    setTasks((prev) =>
+      prev.map((t) => (t.id === taskId ? { ...t, subtasks: (t.subtasks ?? []).filter((s) => s.id !== subtaskId) } : t)),
+    );
   }
 
   function startEdit(task: Task) {
@@ -243,50 +276,119 @@ export default function TodoTab() {
             );
           }
 
+          const progress = subtaskProgress(task);
+          const isExpanded = expandedId === task.id;
+
           return (
             <li
               key={task.id}
-              className={`flex animate-fade-in-up items-center gap-3 rounded-2xl border p-3.5 shadow-card transition-colors duration-200 ${
+              className={`animate-fade-in-up rounded-2xl border p-3.5 shadow-card transition-colors duration-200 ${
                 overdue ? "border-red-400/40 bg-red-400/5" : "border-line bg-panel"
               }`}
             >
-              <button
-                onClick={() => toggleTask(task.id)}
-                className={`grid h-11 w-11 shrink-0 place-items-center rounded-full text-sm font-black transition-colors duration-200 ${
-                  task.done ? "bg-accent text-ink" : meta.color
-                }`}
-                aria-label={task.done ? "Tandakan belum siap" : "Tandakan siap"}
-              >
-                {task.done ? "✓" : task.text.slice(0, 1).toUpperCase()}
-              </button>
-              <div className="flex-1">
-                <p className={`text-sm font-medium transition-colors duration-200 ${task.done ? "text-muted line-through" : "text-fg"}`}>
-                  {task.text}
-                </p>
-                <div className="mt-1.5 flex flex-wrap items-center gap-2">
-                  <span className={`rounded-full px-2 py-0.5 text-xs font-bold ${meta.color}`}>{meta.label}</span>
-                  <span className={`rounded-full px-2 py-0.5 text-xs font-bold ${pMeta.color}`}>{pMeta.label}</span>
-                  {task.dueDate && (
-                    <span className={`text-xs ${overdue ? "font-bold text-red-600" : "text-muted"}`}>
-                      {overdue ? "Tertunggak" : "Tarikh akhir"}: {task.dueDate}
-                    </span>
-                  )}
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => toggleTask(task.id)}
+                  className={`grid h-11 w-11 shrink-0 place-items-center rounded-full text-sm font-black transition-colors duration-200 ${
+                    task.done ? "bg-accent text-ink" : meta.color
+                  }`}
+                  aria-label={task.done ? "Tandakan belum siap" : "Tandakan siap"}
+                >
+                  {task.done ? "✓" : task.text.slice(0, 1).toUpperCase()}
+                </button>
+                <div className="flex-1">
+                  <p className={`text-sm font-medium transition-colors duration-200 ${task.done ? "text-muted line-through" : "text-fg"}`}>
+                    {task.text}
+                  </p>
+                  <div className="mt-1.5 flex flex-wrap items-center gap-2">
+                    <span className={`rounded-full px-2 py-0.5 text-xs font-bold ${meta.color}`}>{meta.label}</span>
+                    <span className={`rounded-full px-2 py-0.5 text-xs font-bold ${pMeta.color}`}>{pMeta.label}</span>
+                    {task.dueDate && (
+                      <span className={`text-xs ${overdue ? "font-bold text-red-600" : "text-muted"}`}>
+                        {overdue ? "Tertunggak" : "Tarikh akhir"}: {task.dueDate}
+                      </span>
+                    )}
+                    <button
+                      onClick={() => toggleSubtaskPanel(task.id)}
+                      className={`rounded-full px-2 py-0.5 text-xs font-bold transition-colors duration-150 ${
+                        isExpanded ? "bg-accent text-ink" : "bg-panel-2 text-muted hover:text-fg"
+                      }`}
+                    >
+                      🧩 {progress.total > 0 ? `${progress.done}/${progress.total}` : "Pecahkan"}
+                    </button>
+                  </div>
                 </div>
+                <button
+                  onClick={() => startEdit(task)}
+                  className="grid h-6 w-6 shrink-0 place-items-center rounded-full text-muted transition-transform duration-150 hover:bg-panel-2 hover:text-fg active:scale-90"
+                  aria-label="Edit"
+                >
+                  ✎
+                </button>
+                <button
+                  onClick={() => deleteTask(task.id)}
+                  className="grid h-6 w-6 shrink-0 place-items-center rounded-full text-muted transition-transform duration-150 hover:bg-panel-2 hover:text-red-400 active:scale-90"
+                  aria-label="Padam"
+                >
+                  ✕
+                </button>
               </div>
-              <button
-                onClick={() => startEdit(task)}
-                className="grid h-6 w-6 place-items-center rounded-full text-muted transition-transform duration-150 hover:bg-panel-2 hover:text-fg active:scale-90"
-                aria-label="Edit"
-              >
-                ✎
-              </button>
-              <button
-                onClick={() => deleteTask(task.id)}
-                className="grid h-6 w-6 place-items-center rounded-full text-muted transition-transform duration-150 hover:bg-panel-2 hover:text-red-400 active:scale-90"
-                aria-label="Padam"
-              >
-                ✕
-              </button>
+
+              {isExpanded && (
+                <div className="mt-3 animate-fade-in-up border-t border-line pt-3">
+                  {progress.total > 0 && (
+                    <div className="mb-3 h-1.5 overflow-hidden rounded-full bg-panel-2">
+                      <div
+                        className="h-full rounded-full bg-accent transition-all duration-300"
+                        style={{ width: `${(progress.done / progress.total) * 100}%` }}
+                      />
+                    </div>
+                  )}
+                  <ul className="flex flex-col gap-1.5">
+                    {(task.subtasks ?? []).map((s) => (
+                      <li key={s.id} className="flex items-center gap-2">
+                        <button
+                          onClick={() => toggleSubtask(task.id, s.id)}
+                          aria-label={s.done ? "Tandakan langkah belum siap" : "Tandakan langkah siap"}
+                          className={`grid h-5 w-5 shrink-0 place-items-center rounded-full text-[10px] font-black transition-colors duration-150 ${
+                            s.done ? "bg-accent text-ink" : "border border-line bg-panel-2 text-transparent"
+                          }`}
+                        >
+                          ✓
+                        </button>
+                        <span className={`flex-1 text-sm ${s.done ? "text-muted line-through" : "text-fg"}`}>{s.text}</span>
+                        <button
+                          onClick={() => deleteSubtask(task.id, s.id)}
+                          className="grid h-5 w-5 shrink-0 place-items-center rounded-full text-muted hover:text-red-400"
+                          aria-label="Padam langkah"
+                        >
+                          ✕
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                  <form
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      addSubtask(task.id);
+                    }}
+                    className="mt-2 flex gap-2"
+                  >
+                    <input
+                      value={subtaskDraft}
+                      onChange={(e) => setSubtaskDraft(e.target.value)}
+                      placeholder="Tambah langkah kecil..."
+                      className="flex-1 rounded-lg border border-line bg-panel-2 px-2.5 py-1.5 text-sm text-fg placeholder:text-muted outline-none focus:border-accent"
+                    />
+                    <button
+                      type="submit"
+                      className="rounded-full bg-dark px-3 py-1.5 text-xs font-bold uppercase text-dark-ink transition-transform duration-150 active:scale-95"
+                    >
+                      +
+                    </button>
+                  </form>
+                </div>
+              )}
             </li>
           );
         })}

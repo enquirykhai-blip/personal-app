@@ -39,3 +39,8 @@ export function atRiskOfMissingTwice(habit: Habit): boolean {
   if (!existedYesterday) return false;
   return !habit.completions.includes(yesterday) && !habit.completions.includes(today);
 }
+
+export function subtaskProgress(task: Task): { done: number; total: number } {
+  const subtasks = task.subtasks ?? [];
+  return { done: subtasks.filter((s) => s.done).length, total: subtasks.length };
+}

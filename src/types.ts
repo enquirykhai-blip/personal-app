@@ -1,6 +1,12 @@
 export type TaskCategory = "personal" | "work" | "errand" | "other";
 export type TaskPriority = "high" | "medium" | "low";
 
+export interface Subtask {
+  id: string;
+  text: string;
+  done: boolean;
+}
+
 export interface Task {
   id: string;
   text: string;
@@ -9,6 +15,7 @@ export interface Task {
   priority: TaskPriority;
   dueDate: string | null;
   createdAt: string;
+  subtasks?: Subtask[];
 }
 
 export interface Habit {
