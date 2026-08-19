@@ -151,7 +151,7 @@ export default function TodoTab() {
           />
           <button
             type="submit"
-            className="ml-auto rounded-lg bg-accent px-5 py-2 text-sm font-bold uppercase tracking-wide text-ink hover:brightness-110"
+            className="ml-auto rounded-lg bg-accent px-5 py-2 text-sm font-bold uppercase tracking-wide text-ink transition-transform duration-150 hover:brightness-110 active:scale-95"
           >
             Tambah
           </button>
@@ -244,7 +244,7 @@ export default function TodoTab() {
           return (
             <li
               key={task.id}
-              className={`flex items-center gap-3 rounded-xl border p-3.5 ${
+              className={`flex animate-fade-in-up items-center gap-3 rounded-xl border p-3.5 transition-colors duration-200 ${
                 overdue ? "border-red-400/40 bg-red-400/5" : "border-line bg-panel"
               }`}
             >
@@ -255,7 +255,7 @@ export default function TodoTab() {
                 className="h-4 w-4 accent-accent"
               />
               <div className="flex-1">
-                <p className={`text-sm font-medium ${task.done ? "text-muted line-through" : "text-white"}`}>
+                <p className={`text-sm font-medium transition-colors duration-200 ${task.done ? "text-muted line-through" : "text-white"}`}>
                   {task.text}
                 </p>
                 <div className="mt-1.5 flex flex-wrap items-center gap-2">
@@ -270,14 +270,14 @@ export default function TodoTab() {
               </div>
               <button
                 onClick={() => startEdit(task)}
-                className="grid h-6 w-6 place-items-center rounded-full text-muted hover:bg-panel-2 hover:text-white"
+                className="grid h-6 w-6 place-items-center rounded-full text-muted transition-transform duration-150 hover:bg-panel-2 hover:text-white active:scale-90"
                 aria-label="Edit"
               >
                 ✎
               </button>
               <button
                 onClick={() => deleteTask(task.id)}
-                className="grid h-6 w-6 place-items-center rounded-full text-muted hover:bg-panel-2 hover:text-red-400"
+                className="grid h-6 w-6 place-items-center rounded-full text-muted transition-transform duration-150 hover:bg-panel-2 hover:text-red-400 active:scale-90"
                 aria-label="Padam"
               >
                 ✕

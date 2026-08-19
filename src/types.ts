@@ -14,6 +14,12 @@ export interface Task {
 export interface Habit {
   id: string;
   name: string;
+  cue?: string;
+  identity?: string;
   createdAt: string;
   completions: string[];
 }
+
+export const PRAYERS = ["subuh", "zohor", "asar", "maghrib", "isyak"] as const;
+export type PrayerName = (typeof PRAYERS)[number];
+export type PrayerLog = Record<string, PrayerName[]>;
