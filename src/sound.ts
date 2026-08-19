@@ -16,32 +16,44 @@ function getContext(): AudioContext | null {
   }
 }
 
-function fireChime(audio: AudioContext) {
-  const now = audio.currentTime;
-  [660, 880].forEach((freq, i) => {
-    const osc = audio.createOscillator();
-    const gain = audio.createGain();
-    osc.type = "sine";
-    osc.frequency.value = freq;
-    const start = now + i * 0.1;
-    gain.gain.setValueAtTime(0, start);
-    gain.gain.linearRampToValueAtTime(0.5, start + 0.015);
-    gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.28);
-    osc.connect(gain).connect(audio.destination);
-    osc.start(start);
-    osc.stop(start + 0.3);
-  });
-}
-
-/** Short ascending two-tone "ding" — synthesized, no audio file needed.
-    Must be called directly inside a user-gesture handler (a click), or
-    iOS/Safari will silently refuse to unlock the audio context. */
-export function playCompleteChime() {
+/** Runs `fire` once the context is actually running — scheduling into a
+    still-"suspended" context (common on the first tap of an iOS session)
+    plays into silence, so this waits for resume() to resolve first. */
+function withContext(fire: (audio: AudioContext) => void) {
   const audio = getContext();
   if (!audio) return;
   if (audio.state === "suspended") {
-    audio.resume().then(() => fireChime(audio), () => {});
+    audio.resume().then(() => fire(audio), () => {});
   } else {
-    fireChime(audio);
+    fire(audio);
   }
+}
+
+function tone(audio: AudioContext, start: number, freq: number, duration: number, peak: number, type: OscillatorType) {
+  const osc = audio.createOscillator();
+  const gain = audio.createGain();
+  osc.type = type;
+  osc.frequency.value = freq;
+  gain.gain.setValueAtTime(0, start);
+  gain.gain.linearRampToValueAtTime(peak, start + 0.015);
+  gain.gain.exponentialRampToValueAtTime(0.0001, start + duration);
+  osc.connect(gain).connect(audio.destination);
+  osc.start(start);
+  osc.stop(start + duration + 0.02);
+}
+
+/** Ascending two-tone "ding" for finishing a step. */
+export function playCompleteChime() {
+  withContext((audio) => {
+    const now = audio.currentTime;
+    [660, 880].forEach((freq, i) => tone(audio, now + i * 0.1, freq, 0.28, 0.5, "sine"));
+  });
+}
+
+/** Single short, lower "tock" for skipping a step — deliberately flatter and
+    quieter than the completion chime so the two are never confused. */
+export function playSkipSound() {
+  withContext((audio) => {
+    tone(audio, audio.currentTime, 320, 0.12, 0.3, "triangle");
+  });
 }
