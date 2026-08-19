@@ -80,6 +80,8 @@
 
 html {
   -webkit-text-size-adjust: 100%;
+  /* App feels static, not a webpage: no pinch-zoom, only vertical/horizontal pan. */
+  touch-action: pan-x pan-y;
 }
 
 body {
@@ -95,6 +97,8 @@ body {
   text-rendering: optimizeLegibility;
   /* Prevent iOS rubber-band revealing a different color behind the nav */
   overscroll-behavior-y: none;
+  /* No double-tap-to-zoom */
+  touch-action: manipulation;
 }
 
 /* Visible, consistent keyboard focus everywhere — replaces the removed outlines. */

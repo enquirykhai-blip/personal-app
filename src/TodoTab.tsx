@@ -1,4 +1,4 @@
-import { Fragment, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import { cx } from "./cx";
 import { useLocalStorage } from "./useLocalStorage";
 import { useAppData } from "./appData";
@@ -8,7 +8,9 @@ import { todayISO } from "./dateUtils";
 import { DEFAULT_OPENROUTER_MODEL, generateSubtasks } from "./ai";
 import {
   IconChevronDown,
+  IconPause,
   IconPencil,
+  IconPlay,
   IconPlus,
   IconSearch,
   IconSliders,
@@ -61,6 +63,15 @@ function durationLabel(minutes: number): string {
   return m ? `${h}j ${m}m` : `${h} jam`;
 }
 
+/** "4:05" — a running clock, always mm:ss regardless of length. */
+function formatClock(totalSeconds: number): string {
+  const m = Math.floor(totalSeconds / 60);
+  const s = totalSeconds % 60;
+  return `${m}:${String(s).padStart(2, "0")}`;
+}
+
+const DEFAULT_TIMER_MINUTES = 5;
+
 type Filter = "active" | "done" | "all";
 
 const FILTERS: { value: Filter; label: string }[] = [
@@ -101,6 +112,24 @@ export default function TodoTab({ expandTaskId }: { expandTaskId?: string | null
   const [aiLoadingId, setAiLoadingId] = useState<string | null>(null);
   const [aiError, setAiError] = useState<{ id: string; message: string } | null>(null);
 
+  /* Tapping a step starts a focus timer for it — counts down from its AI
+     estimate (or a 5-minute default), one step at a time. */
+  const [timer, setTimer] = useState<{
+    taskId: string;
+    subtaskId: string;
+    total: number;
+    remaining: number;
+    running: boolean;
+  } | null>(null);
+
+  useEffect(() => {
+    if (!timer?.running) return;
+    const id = setInterval(() => {
+      setTimer((t) => (t ? { ...t, remaining: Math.max(0, t.remaining - 1), running: t.remaining > 1 } : t));
+    }, 1000);
+    return () => clearInterval(id);
+  }, [timer?.running, timer?.subtaskId]);
+
   function addTask(e: React.FormEvent) {
     e.preventDefault();
     const trimmed = text.trim();
@@ -138,6 +167,20 @@ export default function TodoTab({ expandTaskId }: { expandTaskId?: string | null
     setExpandedId(expandedId === id ? null : id);
     setSubtaskDraft("");
     setAiError(null);
+    setTimer(null);
+  }
+
+  function openTimer(taskId: string, subtask: Subtask) {
+    if (timer?.subtaskId === subtask.id) {
+      setTimer(null);
+      return;
+    }
+    const total = (subtask.minutes && subtask.minutes > 0 ? subtask.minutes : DEFAULT_TIMER_MINUTES) * 60;
+    setTimer({ taskId, subtaskId: subtask.id, total, remaining: total, running: true });
+  }
+
+  function toggleTimerRunning() {
+    setTimer((t) => (t ? { ...t, running: t.remaining > 0 && !t.running } : t));
   }
 
   function addSubtask(taskId: string) {
@@ -166,6 +209,7 @@ export default function TodoTab({ expandTaskId }: { expandTaskId?: string | null
         t.id === taskId ? { ...t, subtasks: (t.subtasks ?? []).filter((s) => s.id !== subtaskId) } : t,
       ),
     );
+    setTimer((t) => (t?.subtaskId === subtaskId ? null : t));
   }
 
   async function handleGenerate(task: Task) {
@@ -509,54 +553,106 @@ export default function TodoTab({ expandTaskId }: { expandTaskId?: string | null
                   {isExpanded && (
                     <div className="animate-rise border-t border-border bg-surface-2/50 p-3">
                       {(task.subtasks ?? []).length > 0 && (
-                        <ul className="mb-1 flex flex-col">
-                          {(task.subtasks ?? []).map((s) => (
-                            <li key={s.id} className="flex items-center gap-1">
-                              <Checkbox
-                                size="sm"
-                                checked={s.done}
-                                onChange={() => toggleSubtask(task.id, s.id)}
-                                label={s.done ? `Tandakan ${s.text} belum siap` : `Tandakan ${s.text} siap`}
-                              />
-                              {s.emoji && (
-                                <span
-                                  className={cx(
-                                    "grid h-7 w-7 shrink-0 place-items-center rounded-field bg-surface-2 text-[0.875rem]",
-                                    s.done && "opacity-40",
-                                  )}
-                                  aria-hidden="true"
-                                >
-                                  {s.emoji}
-                                </span>
-                              )}
-                              <span
-                                className={cx(
-                                  "flex-1 text-label",
-                                  s.done ? "text-ink-3 line-through" : "text-ink-2",
+                        <ul className="mb-1 flex flex-col gap-0.5">
+                          {(task.subtasks ?? []).map((s) => {
+                            const activeTimer = timer?.subtaskId === s.id ? timer : null;
+                            return (
+                              <li key={s.id} className="flex flex-col">
+                                <div className="flex items-center gap-1">
+                                  <Checkbox
+                                    size="sm"
+                                    checked={s.done}
+                                    onChange={() => toggleSubtask(task.id, s.id)}
+                                    label={s.done ? `Tandakan ${s.text} belum siap` : `Tandakan ${s.text} siap`}
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={() => openTimer(task.id, s)}
+                                    aria-expanded={!!activeTimer}
+                                    aria-label={`Mula pemasa untuk ${s.text}`}
+                                    className="flex min-w-0 flex-1 items-center gap-1.5 rounded-field py-1 text-left"
+                                  >
+                                    {s.emoji && (
+                                      <span
+                                        className={cx(
+                                          "grid h-7 w-7 shrink-0 place-items-center rounded-field bg-surface-2 text-[0.875rem]",
+                                          s.done && "opacity-40",
+                                        )}
+                                        aria-hidden="true"
+                                      >
+                                        {s.emoji}
+                                      </span>
+                                    )}
+                                    <span
+                                      className={cx(
+                                        "flex-1 text-label",
+                                        s.done ? "text-ink-3 line-through" : "text-ink-2",
+                                      )}
+                                    >
+                                      {s.text}
+                                    </span>
+                                    {s.minutes ? (
+                                      <span
+                                        className={cx(
+                                          "shrink-0 rounded-full border px-1.5 py-0.5 text-[0.6875rem] font-semibold",
+                                          activeTimer
+                                            ? "border-ink text-ink"
+                                            : s.done
+                                              ? "border-border text-ink-3"
+                                              : "border-border text-ink-2",
+                                        )}
+                                      >
+                                        {durationLabel(s.minutes)}
+                                      </span>
+                                    ) : null}
+                                  </button>
+                                  <IconButton
+                                    label="Padam langkah"
+                                    danger
+                                    className="h-9 w-9"
+                                    onClick={() => deleteSubtask(task.id, s.id)}
+                                  >
+                                    <IconX className="h-3.5 w-3.5" />
+                                  </IconButton>
+                                </div>
+
+                                {activeTimer && (
+                                  <div className="mb-1 ml-8 flex animate-rise items-center gap-2 rounded-field bg-ink px-3 py-2 text-white">
+                                    <span
+                                      role="timer"
+                                      aria-live="polite"
+                                      className={cx(
+                                        "flex-1 text-title font-bold tabular-nums",
+                                        activeTimer.remaining === 0 && "animate-pulse",
+                                      )}
+                                    >
+                                      {activeTimer.remaining === 0 ? "Siap! 🎉" : formatClock(activeTimer.remaining)}
+                                    </span>
+                                    {activeTimer.remaining > 0 && (
+                                      <IconButton
+                                        label={activeTimer.running ? "Jeda pemasa" : "Sambung pemasa"}
+                                        onClick={toggleTimerRunning}
+                                        className="h-8 w-8 text-white hover:bg-white/15 hover:text-white"
+                                      >
+                                        {activeTimer.running ? (
+                                          <IconPause className="h-4 w-4" />
+                                        ) : (
+                                          <IconPlay className="h-4 w-4" />
+                                        )}
+                                      </IconButton>
+                                    )}
+                                    <IconButton
+                                      label="Tutup pemasa"
+                                      onClick={() => setTimer(null)}
+                                      className="h-8 w-8 text-white hover:bg-white/15 hover:text-white"
+                                    >
+                                      <IconX className="h-4 w-4" />
+                                    </IconButton>
+                                  </div>
                                 )}
-                              >
-                                {s.text}
-                              </span>
-                              {s.minutes ? (
-                                <span
-                                  className={cx(
-                                    "shrink-0 rounded-full border border-border px-1.5 py-0.5 text-[0.6875rem] font-semibold",
-                                    s.done ? "text-ink-3" : "text-ink-2",
-                                  )}
-                                >
-                                  {durationLabel(s.minutes)}
-                                </span>
-                              ) : null}
-                              <IconButton
-                                label="Padam langkah"
-                                danger
-                                className="h-9 w-9"
-                                onClick={() => deleteSubtask(task.id, s.id)}
-                              >
-                                <IconX className="h-3.5 w-3.5" />
-                              </IconButton>
-                            </li>
-                          ))}
+                              </li>
+                            );
+                          })}
                         </ul>
                       )}
 

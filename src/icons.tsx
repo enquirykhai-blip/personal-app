@@ -170,6 +170,22 @@ export function IconTarget({ className }: IconProps) {
   );
 }
 
+export function IconPlay({ className }: IconProps) {
+  return (
+    <Svg className={className}>
+      <path d="M6.5 4.8v14.4l12-7.2Z" strokeLinejoin="round" />
+    </Svg>
+  );
+}
+
+export function IconPause({ className }: IconProps) {
+  return (
+    <Svg className={className}>
+      <path d="M7.5 5v14M16.5 5v14" />
+    </Svg>
+  );
+}
+
 export function IconSettings({ className }: IconProps) {
   return (
     <Svg className={className}>

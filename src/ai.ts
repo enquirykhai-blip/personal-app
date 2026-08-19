@@ -14,7 +14,7 @@ export interface GeneratedStep {
 }
 
 const PROMPT = (taskText: string) =>
-  `Pecahkan tugasan ini kepada 3-6 langkah kecil, spesifik, dan boleh disiapkan dengan cepat. ` +
+  `Pecahkan tugasan ini kepada tepat 7 langkah kecil, spesifik, dan boleh disiapkan dengan cepat. ` +
   `Guna Bahasa Melayu santai. Untuk setiap langkah beri satu emoji yang mewakili langkah itu, ` +
   `teks langkah, dan anggaran masa dalam minit (nombor bulat, realistik). ` +
   `Balas JSON sahaja dengan bentuk: ` +
@@ -63,7 +63,7 @@ function parseSteps(raw: string): GeneratedStep[] {
       };
     })
     .filter((s): s is GeneratedStep => s !== null)
-    .slice(0, 8);
+    .slice(0, 7);
 }
 
 async function failure(res: Response, fallbackLabel: string): Promise<Error> {
