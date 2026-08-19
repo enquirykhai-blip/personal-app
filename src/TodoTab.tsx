@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { useLocalStorage } from "./useLocalStorage";
-import type { Task, TaskCategory } from "./types";
+import type { Task, TaskCategory, TaskPriority } from "./types";
+import { isOverdue, sortTasks } from "./statsUtils";
 
 const CATEGORIES: { value: TaskCategory; label: string; color: string }[] = [
   { value: "personal", label: "Peribadi", color: "bg-accent/15 text-accent" },
@@ -9,18 +10,38 @@ const CATEGORIES: { value: TaskCategory; label: string; color: string }[] = [
   { value: "other", label: "Lain-lain", color: "bg-zinc-400/15 text-zinc-300" },
 ];
 
+const PRIORITIES: { value: TaskPriority; label: string; color: string }[] = [
+  { value: "high", label: "Tinggi", color: "bg-red-400/15 text-red-300" },
+  { value: "medium", label: "Sederhana", color: "bg-amber-400/15 text-amber-300" },
+  { value: "low", label: "Rendah", color: "bg-zinc-400/15 text-zinc-300" },
+];
+
 function categoryMeta(category: TaskCategory) {
   return CATEGORIES.find((c) => c.value === category) ?? CATEGORIES[3];
 }
 
+function priorityMeta(priority: TaskPriority | undefined) {
+  return PRIORITIES.find((p) => p.value === priority) ?? PRIORITIES[1];
+}
+
 type Filter = "all" | "active" | "done";
+
+interface EditDraft {
+  text: string;
+  category: TaskCategory;
+  priority: TaskPriority;
+  dueDate: string;
+}
 
 export default function TodoTab() {
   const [tasks, setTasks] = useLocalStorage<Task[]>("tasks", []);
   const [text, setText] = useState("");
   const [category, setCategory] = useState<TaskCategory>("personal");
+  const [priority, setPriority] = useState<TaskPriority>("medium");
   const [dueDate, setDueDate] = useState("");
   const [filter, setFilter] = useState<Filter>("all");
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editDraft, setEditDraft] = useState<EditDraft | null>(null);
 
   function addTask(e: React.FormEvent) {
     e.preventDefault();
@@ -31,12 +52,14 @@ export default function TodoTab() {
       text: trimmed,
       done: false,
       category,
+      priority,
       dueDate: dueDate || null,
       createdAt: new Date().toISOString(),
     };
     setTasks((prev) => [task, ...prev]);
     setText("");
     setDueDate("");
+    setPriority("medium");
   }
 
   function toggleTask(id: string) {
@@ -51,10 +74,39 @@ export default function TodoTab() {
     setTasks((prev) => prev.filter((t) => !t.done));
   }
 
+  function startEdit(task: Task) {
+    setEditingId(task.id);
+    setEditDraft({
+      text: task.text,
+      category: task.category,
+      priority: task.priority ?? "medium",
+      dueDate: task.dueDate ?? "",
+    });
+  }
+
+  function cancelEdit() {
+    setEditingId(null);
+    setEditDraft(null);
+  }
+
+  function saveEdit(id: string) {
+    if (!editDraft) return;
+    const trimmed = editDraft.text.trim();
+    if (!trimmed) return;
+    setTasks((prev) =>
+      prev.map((t) =>
+        t.id === id
+          ? { ...t, text: trimmed, category: editDraft.category, priority: editDraft.priority, dueDate: editDraft.dueDate || null }
+          : t,
+      ),
+    );
+    cancelEdit();
+  }
+
   const visibleTasks = useMemo(() => {
-    if (filter === "active") return tasks.filter((t) => !t.done);
-    if (filter === "done") return tasks.filter((t) => t.done);
-    return tasks;
+    const filtered =
+      filter === "active" ? tasks.filter((t) => !t.done) : filter === "done" ? tasks.filter((t) => t.done) : tasks;
+    return sortTasks(filtered);
   }, [tasks, filter]);
 
   const remaining = tasks.filter((t) => !t.done).length;
@@ -77,6 +129,17 @@ export default function TodoTab() {
             {CATEGORIES.map((c) => (
               <option key={c.value} value={c.value}>
                 {c.label}
+              </option>
+            ))}
+          </select>
+          <select
+            value={priority}
+            onChange={(e) => setPriority(e.target.value as TaskPriority)}
+            className="rounded-lg border border-line bg-panel-2 px-2 py-2 text-sm text-white outline-none focus:border-accent"
+          >
+            {PRIORITIES.map((p) => (
+              <option key={p.value} value={p.value}>
+                Keutamaan: {p.label}
               </option>
             ))}
           </select>
@@ -121,10 +184,69 @@ export default function TodoTab() {
         )}
         {visibleTasks.map((task) => {
           const meta = categoryMeta(task.category);
+          const pMeta = priorityMeta(task.priority);
+          const overdue = isOverdue(task);
+
+          if (editingId === task.id && editDraft) {
+            return (
+              <li key={task.id} className="flex flex-col gap-2 rounded-xl border border-accent bg-panel p-3.5">
+                <input
+                  value={editDraft.text}
+                  onChange={(e) => setEditDraft({ ...editDraft, text: e.target.value })}
+                  className="rounded-lg border border-line bg-panel-2 px-3 py-2 text-sm text-white outline-none focus:border-accent"
+                  autoFocus
+                />
+                <div className="flex flex-wrap items-center gap-2">
+                  <select
+                    value={editDraft.category}
+                    onChange={(e) => setEditDraft({ ...editDraft, category: e.target.value as TaskCategory })}
+                    className="rounded-lg border border-line bg-panel-2 px-2 py-1.5 text-xs text-white outline-none focus:border-accent"
+                  >
+                    {CATEGORIES.map((c) => (
+                      <option key={c.value} value={c.value}>
+                        {c.label}
+                      </option>
+                    ))}
+                  </select>
+                  <select
+                    value={editDraft.priority}
+                    onChange={(e) => setEditDraft({ ...editDraft, priority: e.target.value as TaskPriority })}
+                    className="rounded-lg border border-line bg-panel-2 px-2 py-1.5 text-xs text-white outline-none focus:border-accent"
+                  >
+                    {PRIORITIES.map((p) => (
+                      <option key={p.value} value={p.value}>
+                        {p.label}
+                      </option>
+                    ))}
+                  </select>
+                  <input
+                    type="date"
+                    value={editDraft.dueDate}
+                    onChange={(e) => setEditDraft({ ...editDraft, dueDate: e.target.value })}
+                    className="rounded-lg border border-line bg-panel-2 px-2 py-1.5 text-xs text-white outline-none focus:border-accent [color-scheme:dark]"
+                  />
+                  <div className="ml-auto flex gap-2">
+                    <button onClick={cancelEdit} className="rounded-lg px-3 py-1.5 text-xs font-bold text-muted hover:text-white">
+                      Batal
+                    </button>
+                    <button
+                      onClick={() => saveEdit(task.id)}
+                      className="rounded-lg bg-accent px-3 py-1.5 text-xs font-bold uppercase text-ink hover:brightness-110"
+                    >
+                      Simpan
+                    </button>
+                  </div>
+                </div>
+              </li>
+            );
+          }
+
           return (
             <li
               key={task.id}
-              className="flex items-center gap-3 rounded-xl border border-line bg-panel p-3.5"
+              className={`flex items-center gap-3 rounded-xl border p-3.5 ${
+                overdue ? "border-red-400/40 bg-red-400/5" : "border-line bg-panel"
+              }`}
             >
               <input
                 type="checkbox"
@@ -136,13 +258,23 @@ export default function TodoTab() {
                 <p className={`text-sm font-medium ${task.done ? "text-muted line-through" : "text-white"}`}>
                   {task.text}
                 </p>
-                <div className="mt-1.5 flex items-center gap-2">
+                <div className="mt-1.5 flex flex-wrap items-center gap-2">
                   <span className={`rounded-full px-2 py-0.5 text-xs font-bold ${meta.color}`}>{meta.label}</span>
+                  <span className={`rounded-full px-2 py-0.5 text-xs font-bold ${pMeta.color}`}>{pMeta.label}</span>
                   {task.dueDate && (
-                    <span className="text-xs text-muted">Tarikh akhir: {task.dueDate}</span>
+                    <span className={`text-xs ${overdue ? "font-bold text-red-300" : "text-muted"}`}>
+                      {overdue ? "Tertunggak" : "Tarikh akhir"}: {task.dueDate}
+                    </span>
                   )}
                 </div>
               </div>
+              <button
+                onClick={() => startEdit(task)}
+                className="grid h-6 w-6 place-items-center rounded-full text-muted hover:bg-panel-2 hover:text-white"
+                aria-label="Edit"
+              >
+                ✎
+              </button>
               <button
                 onClick={() => deleteTask(task.id)}
                 className="grid h-6 w-6 place-items-center rounded-full text-muted hover:bg-panel-2 hover:text-red-400"
