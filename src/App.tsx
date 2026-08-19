@@ -8,27 +8,26 @@ function App() {
   const [tab, setTab] = useState<Tab>("todo");
 
   return (
-    <div className="min-h-screen">
-      <header className="border-b border-slate-200 dark:border-slate-800">
-        <div className="mx-auto flex max-w-2xl items-center justify-between px-4 py-5">
-          <h1 className="text-xl font-semibold text-slate-900 dark:text-slate-100">My Space</h1>
-          <nav className="flex gap-1 rounded-lg bg-slate-100 p-1 text-sm dark:bg-slate-800">
+    <div className="min-h-screen bg-canvas">
+      <header className="border-b border-line">
+        <div className="mx-auto flex max-w-2xl items-center justify-between px-4 py-4">
+          <div className="flex items-center gap-1 text-2xl font-black tracking-tight">
+            <span className="text-white">MY</span>
+            <span className="rounded-md bg-accent px-1.5 text-ink">SPACE</span>
+          </div>
+          <nav className="flex gap-1 rounded-full border border-line bg-panel p-1 text-sm">
             <button
               onClick={() => setTab("todo")}
-              className={`rounded-md px-3 py-1.5 ${
-                tab === "todo"
-                  ? "bg-white text-slate-900 shadow-sm dark:bg-slate-700 dark:text-white"
-                  : "text-slate-500 dark:text-slate-400"
+              className={`rounded-full px-4 py-1.5 font-bold transition ${
+                tab === "todo" ? "bg-accent text-ink" : "text-muted hover:text-white"
               }`}
             >
               Tugasan
             </button>
             <button
               onClick={() => setTab("habits")}
-              className={`rounded-md px-3 py-1.5 ${
-                tab === "habits"
-                  ? "bg-white text-slate-900 shadow-sm dark:bg-slate-700 dark:text-white"
-                  : "text-slate-500 dark:text-slate-400"
+              className={`rounded-full px-4 py-1.5 font-bold transition ${
+                tab === "habits" ? "bg-accent text-ink" : "text-muted hover:text-white"
               }`}
             >
               Tabiat

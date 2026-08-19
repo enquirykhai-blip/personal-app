@@ -3,10 +3,10 @@ import { useLocalStorage } from "./useLocalStorage";
 import type { Task, TaskCategory } from "./types";
 
 const CATEGORIES: { value: TaskCategory; label: string; color: string }[] = [
-  { value: "personal", label: "Peribadi", color: "bg-violet-100 text-violet-700 dark:bg-violet-900/40 dark:text-violet-300" },
-  { value: "work", label: "Kerja", color: "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300" },
-  { value: "errand", label: "Urusan", color: "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300" },
-  { value: "other", label: "Lain-lain", color: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300" },
+  { value: "personal", label: "Peribadi", color: "bg-accent/15 text-accent" },
+  { value: "work", label: "Kerja", color: "bg-sky-400/15 text-sky-300" },
+  { value: "errand", label: "Urusan", color: "bg-amber-400/15 text-amber-300" },
+  { value: "other", label: "Lain-lain", color: "bg-zinc-400/15 text-zinc-300" },
 ];
 
 function categoryMeta(category: TaskCategory) {
@@ -61,18 +61,18 @@ export default function TodoTab() {
 
   return (
     <div className="mx-auto max-w-2xl">
-      <form onSubmit={addTask} className="mb-6 flex flex-col gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+      <form onSubmit={addTask} className="mb-6 flex flex-col gap-3 rounded-2xl border border-line bg-panel p-4">
         <input
           value={text}
           onChange={(e) => setText(e.target.value)}
           placeholder="Apa yang perlu dibuat?"
-          className="rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-violet-500 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
+          className="rounded-lg border border-line bg-panel-2 px-3 py-2.5 text-sm text-white placeholder:text-muted outline-none focus:border-accent"
         />
         <div className="flex flex-wrap items-center gap-2">
           <select
             value={category}
             onChange={(e) => setCategory(e.target.value as TaskCategory)}
-            className="rounded-lg border border-slate-300 px-2 py-1.5 text-sm dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
+            className="rounded-lg border border-line bg-panel-2 px-2 py-2 text-sm text-white outline-none focus:border-accent"
           >
             {CATEGORIES.map((c) => (
               <option key={c.value} value={c.value}>
@@ -84,39 +84,38 @@ export default function TodoTab() {
             type="date"
             value={dueDate}
             onChange={(e) => setDueDate(e.target.value)}
-            className="rounded-lg border border-slate-300 px-2 py-1.5 text-sm dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100"
+            className="rounded-lg border border-line bg-panel-2 px-2 py-2 text-sm text-white outline-none focus:border-accent [color-scheme:dark]"
           />
           <button
             type="submit"
-            className="ml-auto rounded-lg bg-violet-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-violet-700"
+            className="ml-auto rounded-lg bg-accent px-5 py-2 text-sm font-bold uppercase tracking-wide text-ink hover:brightness-110"
           >
             Tambah
           </button>
         </div>
       </form>
 
-      <div className="mb-4 flex items-center justify-between">
-        <div className="flex gap-1 rounded-lg bg-slate-100 p-1 text-sm dark:bg-slate-800">
+      <div className="mb-4 flex items-center justify-between border-b border-line">
+        <div className="flex gap-6 text-sm">
           {(["all", "active", "done"] as Filter[]).map((f) => (
             <button
               key={f}
               onClick={() => setFilter(f)}
-              className={`rounded-md px-3 py-1 ${
-                filter === f
-                  ? "bg-white text-slate-900 shadow-sm dark:bg-slate-700 dark:text-white"
-                  : "text-slate-500 dark:text-slate-400"
+              className={`relative pb-3 font-bold ${
+                filter === f ? "text-white" : "text-muted hover:text-white"
               }`}
             >
               {f === "all" ? "Semua" : f === "active" ? "Belum siap" : "Siap"}
+              {filter === f && <span className="absolute inset-x-0 -bottom-px h-0.5 bg-accent" />}
             </button>
           ))}
         </div>
-        <span className="text-sm text-slate-500 dark:text-slate-400">{remaining} tugasan tinggal</span>
+        <span className="pb-3 text-xs text-muted">{remaining} tugasan tinggal</span>
       </div>
 
       <ul className="flex flex-col gap-2">
         {visibleTasks.length === 0 && (
-          <li className="rounded-lg border border-dashed border-slate-300 p-6 text-center text-sm text-slate-400 dark:border-slate-700">
+          <li className="rounded-xl border border-dashed border-line p-6 text-center text-sm text-muted">
             Tiada tugasan di sini.
           </li>
         )}
@@ -125,28 +124,28 @@ export default function TodoTab() {
           return (
             <li
               key={task.id}
-              className="flex items-center gap-3 rounded-lg border border-slate-200 bg-white p-3 shadow-sm dark:border-slate-800 dark:bg-slate-900"
+              className="flex items-center gap-3 rounded-xl border border-line bg-panel p-3.5"
             >
               <input
                 type="checkbox"
                 checked={task.done}
                 onChange={() => toggleTask(task.id)}
-                className="h-4 w-4 accent-violet-600"
+                className="h-4 w-4 accent-accent"
               />
               <div className="flex-1">
-                <p className={`text-sm ${task.done ? "text-slate-400 line-through" : "text-slate-800 dark:text-slate-100"}`}>
+                <p className={`text-sm font-medium ${task.done ? "text-muted line-through" : "text-white"}`}>
                   {task.text}
                 </p>
-                <div className="mt-1 flex items-center gap-2">
-                  <span className={`rounded-full px-2 py-0.5 text-xs ${meta.color}`}>{meta.label}</span>
+                <div className="mt-1.5 flex items-center gap-2">
+                  <span className={`rounded-full px-2 py-0.5 text-xs font-bold ${meta.color}`}>{meta.label}</span>
                   {task.dueDate && (
-                    <span className="text-xs text-slate-400">Tarikh akhir: {task.dueDate}</span>
+                    <span className="text-xs text-muted">Tarikh akhir: {task.dueDate}</span>
                   )}
                 </div>
               </div>
               <button
                 onClick={() => deleteTask(task.id)}
-                className="text-slate-400 hover:text-red-500"
+                className="grid h-6 w-6 place-items-center rounded-full text-muted hover:bg-panel-2 hover:text-red-400"
                 aria-label="Padam"
               >
                 ✕
@@ -157,7 +156,7 @@ export default function TodoTab() {
       </ul>
 
       {tasks.some((t) => t.done) && (
-        <button onClick={clearDone} className="mt-4 text-sm text-slate-400 hover:text-red-500">
+        <button onClick={clearDone} className="mt-4 text-sm font-semibold text-muted hover:text-red-400">
           Buang semua yang siap
         </button>
       )}
