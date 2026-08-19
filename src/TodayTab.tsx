@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { cx } from "./cx";
 import { useAppData } from "./appData";
+import { celebrateTaskDone } from "./celebrate";
 
 import { PRAYERS, type Task } from "./types";
 import { currentStreak, todayISO } from "./dateUtils";
@@ -54,6 +55,8 @@ export default function TodayTab({ onNavigate }: { onNavigate: (tab: Tab, taskId
   const habitsToday = habitsDoneToday(habits);
 
   function toggleTask(id: string) {
+    const task = tasks.find((t) => t.id === id);
+    if (task && !task.done) celebrateTaskDone(task.text);
     setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, done: !t.done } : t)));
   }
 

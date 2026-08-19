@@ -1,10 +1,12 @@
-import { useState, type ReactElement } from "react";
+import { useEffect, useState, type ReactElement } from "react";
 import { cx } from "./cx";
 import TodayTab from "./TodayTab";
 import TodoTab from "./TodoTab";
 import HabitsTab from "./HabitsTab";
 import SolatTab from "./SolatTab";
 import SettingsTab from "./SettingsTab";
+import SuccessCelebration from "./SuccessCelebration";
+import { onCelebrate } from "./celebrate";
 import { IconHome, IconList, IconMoon, IconRepeat, IconSettings } from "./icons";
 
 export type Tab = "today" | "todo" | "habits" | "solat" | "settings";
@@ -20,6 +22,9 @@ const TABS: { value: Tab; label: string; icon: (p: { className?: string }) => Re
 export default function App() {
   const [tab, setTab] = useState<Tab>("today");
   const [expandTaskId, setExpandTaskId] = useState<string | null>(null);
+  const [celebrating, setCelebrating] = useState<string | null>(null);
+
+  useEffect(() => onCelebrate(setCelebrating), []);
 
   /* A deep link carries an optional task to open, so "Pecahkan" on the Today
      screen lands on that task's steps instead of just switching tabs. */
@@ -64,6 +69,8 @@ export default function App() {
           })}
         </div>
       </nav>
+
+      {celebrating && <SuccessCelebration taskText={celebrating} onDone={() => setCelebrating(null)} />}
     </div>
   );
 }

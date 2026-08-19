@@ -58,6 +58,7 @@ function synthWav(notes: { freq: number; start: number; dur: number }[], totalDu
 
 let completeUri: string | null = null;
 let skipUri: string | null = null;
+let fanfareUri: string | null = null;
 
 function play(uri: string) {
   try {
@@ -84,4 +85,19 @@ export function playCompleteChime() {
 export function playSkipSound() {
   skipUri ??= synthWav([{ freq: 320, start: 0, dur: 0.14 }], 0.16);
   play(skipUri);
+}
+
+/** Four-note rising fanfare for finishing an entire task — the "brain
+    reward" moment, bigger and brighter than the per-step ding. */
+export function playCelebrationFanfare() {
+  fanfareUri ??= synthWav(
+    [
+      { freq: 523.25, start: 0, dur: 0.2 }, // C5
+      { freq: 659.25, start: 0.12, dur: 0.2 }, // E5
+      { freq: 783.99, start: 0.24, dur: 0.22 }, // G5
+      { freq: 1046.5, start: 0.38, dur: 0.5 }, // C6, held
+    ],
+    0.9,
+  );
+  play(fanfareUri);
 }

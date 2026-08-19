@@ -7,6 +7,7 @@ import { isOverdue, sortTasks, subtaskProgress } from "./statsUtils";
 import { todayISO } from "./dateUtils";
 import { DEFAULT_OPENROUTER_MODEL, generateSubtasks } from "./ai";
 import { DEFAULT_TIMER_MINUTES, durationLabel, formatClock } from "./timeUtils";
+import { celebrateTaskDone } from "./celebrate";
 import TaskRunner from "./TaskRunner";
 import {
   IconChevronDown,
@@ -132,7 +133,9 @@ export default function TodoTab({ expandTaskId }: { expandTaskId?: string | null
 
   function runnerFinish() {
     if (runningTaskId) {
+      const finished = tasks.find((t) => t.id === runningTaskId);
       setTasks((prev) => prev.map((t) => (t.id === runningTaskId ? { ...t, done: true } : t)));
+      if (finished) celebrateTaskDone(finished.text);
     }
     setRunningTaskId(null);
   }
@@ -159,6 +162,8 @@ export default function TodoTab({ expandTaskId }: { expandTaskId?: string | null
   }
 
   function toggleTask(id: string) {
+    const task = tasks.find((t) => t.id === id);
+    if (task && !task.done) celebrateTaskDone(task.text);
     setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, done: !t.done } : t)));
   }
 
