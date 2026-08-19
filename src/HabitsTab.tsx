@@ -3,6 +3,7 @@ import { useLocalStorage } from "./useLocalStorage";
 import type { Habit } from "./types";
 import { currentStreak, lastNDays, todayISO } from "./dateUtils";
 import { atRiskOfMissingTwice } from "./statsUtils";
+import MonthHeatmap from "./MonthHeatmap";
 
 interface Draft {
   name: string;
@@ -17,6 +18,7 @@ export default function HabitsTab() {
   const [draft, setDraft] = useState<Draft>(EMPTY_DRAFT);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editDraft, setEditDraft] = useState<Draft>(EMPTY_DRAFT);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
   const days = lastNDays(7);
   const today = todayISO();
 
@@ -187,6 +189,15 @@ export default function HabitsTab() {
                     </div>
                     <div className="flex gap-1">
                       <button
+                        onClick={() => setExpandedId(expandedId === habit.id ? null : habit.id)}
+                        className={`grid h-6 w-6 place-items-center rounded-full transition-transform duration-150 hover:bg-panel-2 active:scale-90 ${
+                          expandedId === habit.id ? "text-accent" : "text-muted hover:text-fg"
+                        }`}
+                        aria-label="Lihat heatmap bulanan"
+                      >
+                        📅
+                      </button>
+                      <button
                         onClick={() => startEdit(habit)}
                         className="grid h-6 w-6 place-items-center rounded-full text-muted transition-transform duration-150 hover:bg-panel-2 hover:text-fg active:scale-90"
                         aria-label="Edit"
@@ -227,6 +238,14 @@ export default function HabitsTab() {
                   );
                 })}
               </div>
+              {expandedId === habit.id && (
+                <div className="mt-3 animate-fade-in-up">
+                  <MonthHeatmap
+                    todayISO={today}
+                    getIntensity={(dateISO) => (habit.completions.includes(dateISO) ? 1 : 0)}
+                  />
+                </div>
+              )}
             </li>
           );
         })}

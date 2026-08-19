@@ -3,6 +3,7 @@ import { useLocalStorage } from "./useLocalStorage";
 import { PRAYERS, type PrayerLog } from "./types";
 import { lastNDays, todayISO } from "./dateUtils";
 import { PRAYER_ICONS, PRAYER_LABELS, prayerStreak, togglePrayer } from "./prayerUtils";
+import MonthHeatmap from "./MonthHeatmap";
 
 export default function SolatTab() {
   const [log, setLog] = useLocalStorage<PrayerLog>("prayers", {});
@@ -63,7 +64,7 @@ export default function SolatTab() {
         })}
       </div>
 
-      <section>
+      <section className="mb-6">
         <h2 className="mb-3 text-sm font-bold uppercase tracking-wide text-muted">7 Hari Terkini</h2>
         <div className="flex flex-col gap-2">
           {[...days].reverse().map((day) => {
@@ -98,6 +99,11 @@ export default function SolatTab() {
             );
           })}
         </div>
+      </section>
+
+      <section>
+        <h2 className="mb-3 text-sm font-bold uppercase tracking-wide text-muted">Heatmap Bulanan</h2>
+        <MonthHeatmap todayISO={today} getIntensity={(dateISO) => (log[dateISO]?.length ?? 0) / PRAYERS.length} />
       </section>
     </div>
   );
