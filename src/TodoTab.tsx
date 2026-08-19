@@ -5,15 +5,15 @@ import { isOverdue, sortTasks } from "./statsUtils";
 
 const CATEGORIES: { value: TaskCategory; label: string; color: string }[] = [
   { value: "personal", label: "Peribadi", color: "bg-accent/15 text-accent" },
-  { value: "work", label: "Kerja", color: "bg-sky-400/15 text-sky-300" },
-  { value: "errand", label: "Urusan", color: "bg-amber-400/15 text-amber-300" },
-  { value: "other", label: "Lain-lain", color: "bg-zinc-400/15 text-zinc-300" },
+  { value: "work", label: "Kerja", color: "bg-sky-400/15 text-sky-700" },
+  { value: "errand", label: "Urusan", color: "bg-amber-400/15 text-amber-700" },
+  { value: "other", label: "Lain-lain", color: "bg-zinc-400/15 text-zinc-600" },
 ];
 
 const PRIORITIES: { value: TaskPriority; label: string; color: string }[] = [
-  { value: "high", label: "Tinggi", color: "bg-red-400/15 text-red-300" },
-  { value: "medium", label: "Sederhana", color: "bg-amber-400/15 text-amber-300" },
-  { value: "low", label: "Rendah", color: "bg-zinc-400/15 text-zinc-300" },
+  { value: "high", label: "Tinggi", color: "bg-red-400/15 text-red-600" },
+  { value: "medium", label: "Sederhana", color: "bg-amber-400/15 text-amber-700" },
+  { value: "low", label: "Rendah", color: "bg-zinc-400/15 text-zinc-600" },
 ];
 
 function categoryMeta(category: TaskCategory) {
@@ -113,18 +113,18 @@ export default function TodoTab() {
 
   return (
     <div className="mx-auto max-w-2xl">
-      <form onSubmit={addTask} className="mb-6 flex flex-col gap-3 rounded-2xl border border-line bg-panel p-4">
+      <form onSubmit={addTask} className="mb-6 flex flex-col gap-3 rounded-3xl border border-line bg-panel p-4 shadow-card">
         <input
           value={text}
           onChange={(e) => setText(e.target.value)}
           placeholder="Apa yang perlu dibuat?"
-          className="rounded-lg border border-line bg-panel-2 px-3 py-2.5 text-sm text-white placeholder:text-muted outline-none focus:border-accent"
+          className="rounded-lg border border-line bg-panel-2 px-3 py-2.5 text-sm text-fg placeholder:text-muted outline-none focus:border-accent"
         />
         <div className="flex flex-wrap items-center gap-2">
           <select
             value={category}
             onChange={(e) => setCategory(e.target.value as TaskCategory)}
-            className="rounded-lg border border-line bg-panel-2 px-2 py-2 text-sm text-white outline-none focus:border-accent"
+            className="rounded-lg border border-line bg-panel-2 px-2 py-2 text-sm text-fg outline-none focus:border-accent"
           >
             {CATEGORIES.map((c) => (
               <option key={c.value} value={c.value}>
@@ -135,7 +135,7 @@ export default function TodoTab() {
           <select
             value={priority}
             onChange={(e) => setPriority(e.target.value as TaskPriority)}
-            className="rounded-lg border border-line bg-panel-2 px-2 py-2 text-sm text-white outline-none focus:border-accent"
+            className="rounded-lg border border-line bg-panel-2 px-2 py-2 text-sm text-fg outline-none focus:border-accent"
           >
             {PRIORITIES.map((p) => (
               <option key={p.value} value={p.value}>
@@ -147,7 +147,7 @@ export default function TodoTab() {
             type="date"
             value={dueDate}
             onChange={(e) => setDueDate(e.target.value)}
-            className="rounded-lg border border-line bg-panel-2 px-2 py-2 text-sm text-white outline-none focus:border-accent [color-scheme:dark]"
+            className="rounded-lg border border-line bg-panel-2 px-2 py-2 text-sm text-fg outline-none focus:border-accent [color-scheme:light]"
           />
           <button
             type="submit"
@@ -165,7 +165,7 @@ export default function TodoTab() {
               key={f}
               onClick={() => setFilter(f)}
               className={`relative pb-3 font-bold ${
-                filter === f ? "text-white" : "text-muted hover:text-white"
+                filter === f ? "text-fg" : "text-muted hover:text-fg"
               }`}
             >
               {f === "all" ? "Semua" : f === "active" ? "Belum siap" : "Siap"}
@@ -189,18 +189,18 @@ export default function TodoTab() {
 
           if (editingId === task.id && editDraft) {
             return (
-              <li key={task.id} className="flex flex-col gap-2 rounded-xl border border-accent bg-panel p-3.5">
+              <li key={task.id} className="flex flex-col gap-2 rounded-2xl border border-accent bg-panel p-3.5 shadow-card-lg">
                 <input
                   value={editDraft.text}
                   onChange={(e) => setEditDraft({ ...editDraft, text: e.target.value })}
-                  className="rounded-lg border border-line bg-panel-2 px-3 py-2 text-sm text-white outline-none focus:border-accent"
+                  className="rounded-lg border border-line bg-panel-2 px-3 py-2 text-sm text-fg outline-none focus:border-accent"
                   autoFocus
                 />
                 <div className="flex flex-wrap items-center gap-2">
                   <select
                     value={editDraft.category}
                     onChange={(e) => setEditDraft({ ...editDraft, category: e.target.value as TaskCategory })}
-                    className="rounded-lg border border-line bg-panel-2 px-2 py-1.5 text-xs text-white outline-none focus:border-accent"
+                    className="rounded-lg border border-line bg-panel-2 px-2 py-1.5 text-xs text-fg outline-none focus:border-accent"
                   >
                     {CATEGORIES.map((c) => (
                       <option key={c.value} value={c.value}>
@@ -211,7 +211,7 @@ export default function TodoTab() {
                   <select
                     value={editDraft.priority}
                     onChange={(e) => setEditDraft({ ...editDraft, priority: e.target.value as TaskPriority })}
-                    className="rounded-lg border border-line bg-panel-2 px-2 py-1.5 text-xs text-white outline-none focus:border-accent"
+                    className="rounded-lg border border-line bg-panel-2 px-2 py-1.5 text-xs text-fg outline-none focus:border-accent"
                   >
                     {PRIORITIES.map((p) => (
                       <option key={p.value} value={p.value}>
@@ -223,10 +223,10 @@ export default function TodoTab() {
                     type="date"
                     value={editDraft.dueDate}
                     onChange={(e) => setEditDraft({ ...editDraft, dueDate: e.target.value })}
-                    className="rounded-lg border border-line bg-panel-2 px-2 py-1.5 text-xs text-white outline-none focus:border-accent [color-scheme:dark]"
+                    className="rounded-lg border border-line bg-panel-2 px-2 py-1.5 text-xs text-fg outline-none focus:border-accent [color-scheme:light]"
                   />
                   <div className="ml-auto flex gap-2">
-                    <button onClick={cancelEdit} className="rounded-lg px-3 py-1.5 text-xs font-bold text-muted hover:text-white">
+                    <button onClick={cancelEdit} className="rounded-lg px-3 py-1.5 text-xs font-bold text-muted hover:text-fg">
                       Batal
                     </button>
                     <button
@@ -244,7 +244,7 @@ export default function TodoTab() {
           return (
             <li
               key={task.id}
-              className={`flex animate-fade-in-up items-center gap-3 rounded-xl border p-3.5 transition-colors duration-200 ${
+              className={`flex animate-fade-in-up items-center gap-3 rounded-2xl border p-3.5 shadow-card transition-colors duration-200 ${
                 overdue ? "border-red-400/40 bg-red-400/5" : "border-line bg-panel"
               }`}
             >
@@ -255,14 +255,14 @@ export default function TodoTab() {
                 className="h-4 w-4 accent-accent"
               />
               <div className="flex-1">
-                <p className={`text-sm font-medium transition-colors duration-200 ${task.done ? "text-muted line-through" : "text-white"}`}>
+                <p className={`text-sm font-medium transition-colors duration-200 ${task.done ? "text-muted line-through" : "text-fg"}`}>
                   {task.text}
                 </p>
                 <div className="mt-1.5 flex flex-wrap items-center gap-2">
                   <span className={`rounded-full px-2 py-0.5 text-xs font-bold ${meta.color}`}>{meta.label}</span>
                   <span className={`rounded-full px-2 py-0.5 text-xs font-bold ${pMeta.color}`}>{pMeta.label}</span>
                   {task.dueDate && (
-                    <span className={`text-xs ${overdue ? "font-bold text-red-300" : "text-muted"}`}>
+                    <span className={`text-xs ${overdue ? "font-bold text-red-600" : "text-muted"}`}>
                       {overdue ? "Tertunggak" : "Tarikh akhir"}: {task.dueDate}
                     </span>
                   )}
@@ -270,7 +270,7 @@ export default function TodoTab() {
               </div>
               <button
                 onClick={() => startEdit(task)}
-                className="grid h-6 w-6 place-items-center rounded-full text-muted transition-transform duration-150 hover:bg-panel-2 hover:text-white active:scale-90"
+                className="grid h-6 w-6 place-items-center rounded-full text-muted transition-transform duration-150 hover:bg-panel-2 hover:text-fg active:scale-90"
                 aria-label="Edit"
               >
                 ✎

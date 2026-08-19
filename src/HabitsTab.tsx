@@ -73,25 +73,25 @@ export default function HabitsTab() {
 
   return (
     <div className="mx-auto max-w-2xl">
-      <form onSubmit={addHabit} className="mb-6 flex flex-col gap-2 rounded-2xl border border-line bg-panel p-4">
+      <form onSubmit={addHabit} className="mb-6 flex flex-col gap-2 rounded-3xl border border-line bg-panel p-4 shadow-card">
         <input
           value={draft.name}
           onChange={(e) => setDraft({ ...draft, name: e.target.value })}
           placeholder="Tabiat baharu (contoh: Baca 20 minit)"
-          className="rounded-lg border border-line bg-panel-2 px-3 py-2.5 text-sm text-white placeholder:text-muted outline-none focus:border-accent"
+          className="rounded-lg border border-line bg-panel-2 px-3 py-2.5 text-sm text-fg placeholder:text-muted outline-none focus:border-accent"
         />
         <div className="flex flex-wrap gap-2">
           <input
             value={draft.cue}
             onChange={(e) => setDraft({ ...draft, cue: e.target.value })}
             placeholder="Selepas apa? (cth: Lepas gosok gigi pagi)"
-            className="flex-1 rounded-lg border border-line bg-panel-2 px-3 py-2 text-xs text-white placeholder:text-muted outline-none focus:border-accent"
+            className="flex-1 rounded-lg border border-line bg-panel-2 px-3 py-2 text-xs text-fg placeholder:text-muted outline-none focus:border-accent"
           />
           <input
             value={draft.identity}
             onChange={(e) => setDraft({ ...draft, identity: e.target.value })}
             placeholder="Identiti (cth: Saya seorang pembaca)"
-            className="flex-1 rounded-lg border border-line bg-panel-2 px-3 py-2 text-xs text-white placeholder:text-muted outline-none focus:border-accent"
+            className="flex-1 rounded-lg border border-line bg-panel-2 px-3 py-2 text-xs text-fg placeholder:text-muted outline-none focus:border-accent"
           />
         </div>
         <button
@@ -115,7 +115,7 @@ export default function HabitsTab() {
           return (
             <li
               key={habit.id}
-              className={`animate-fade-in-up rounded-2xl border p-4 ${
+              className={`animate-fade-in-up rounded-2xl border p-4 shadow-card ${
                 atRisk ? "border-red-400/40 bg-red-400/5" : "border-line bg-panel"
               }`}
             >
@@ -126,26 +126,26 @@ export default function HabitsTab() {
                       value={editDraft.name}
                       onChange={(e) => setEditDraft({ ...editDraft, name: e.target.value })}
                       autoFocus
-                      className="rounded-lg border border-line bg-panel-2 px-2 py-1.5 text-sm text-white outline-none focus:border-accent"
+                      className="rounded-lg border border-line bg-panel-2 px-2 py-1.5 text-sm text-fg outline-none focus:border-accent"
                     />
                     <div className="flex flex-wrap gap-2">
                       <input
                         value={editDraft.cue}
                         onChange={(e) => setEditDraft({ ...editDraft, cue: e.target.value })}
                         placeholder="Selepas apa?"
-                        className="flex-1 rounded-lg border border-line bg-panel-2 px-2 py-1.5 text-xs text-white outline-none focus:border-accent"
+                        className="flex-1 rounded-lg border border-line bg-panel-2 px-2 py-1.5 text-xs text-fg outline-none focus:border-accent"
                       />
                       <input
                         value={editDraft.identity}
                         onChange={(e) => setEditDraft({ ...editDraft, identity: e.target.value })}
                         placeholder="Identiti"
-                        className="flex-1 rounded-lg border border-line bg-panel-2 px-2 py-1.5 text-xs text-white outline-none focus:border-accent"
+                        className="flex-1 rounded-lg border border-line bg-panel-2 px-2 py-1.5 text-xs text-fg outline-none focus:border-accent"
                       />
                     </div>
                     <div className="flex justify-end gap-2">
                       <button
                         onClick={() => setEditingId(null)}
-                        className="text-xs font-bold text-muted hover:text-white"
+                        className="text-xs font-bold text-muted hover:text-fg"
                       >
                         Batal
                       </button>
@@ -160,7 +160,7 @@ export default function HabitsTab() {
                 ) : (
                   <>
                     <div>
-                      <p className="font-bold text-white">{habit.name}</p>
+                      <p className="font-bold text-fg">{habit.name}</p>
                       {habit.identity && (
                         <p className="mt-0.5 text-xs font-semibold text-accent">✦ {habit.identity}</p>
                       )}
@@ -173,7 +173,7 @@ export default function HabitsTab() {
                         )}
                       </p>
                       {atRisk && (
-                        <p className="mt-1 animate-shake text-xs font-bold text-red-300">
+                        <p className="mt-1 animate-shake text-xs font-bold text-red-600">
                           ⚠️ Jangan miss 2 hari berturut-turut!
                         </p>
                       )}
@@ -181,7 +181,7 @@ export default function HabitsTab() {
                     <div className="flex gap-1">
                       <button
                         onClick={() => startEdit(habit)}
-                        className="grid h-6 w-6 place-items-center rounded-full text-muted transition-transform duration-150 hover:bg-panel-2 hover:text-white active:scale-90"
+                        className="grid h-6 w-6 place-items-center rounded-full text-muted transition-transform duration-150 hover:bg-panel-2 hover:text-fg active:scale-90"
                         aria-label="Edit"
                       >
                         ✎
@@ -209,7 +209,7 @@ export default function HabitsTab() {
                       className={`flex h-10 w-10 flex-col items-center justify-center rounded-lg text-xs font-bold transition-all duration-150 active:scale-90 ${
                         done
                           ? "bg-accent text-ink"
-                          : "border border-line bg-panel-2 text-muted hover:border-accent/50 hover:text-white"
+                          : "border border-line bg-panel-2 text-muted hover:border-accent/50 hover:text-fg"
                       } ${day === today ? "ring-2 ring-accent ring-offset-2 ring-offset-panel" : ""}`}
                     >
                       <span className="leading-none">{label}</span>

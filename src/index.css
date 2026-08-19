@@ -1,24 +1,28 @@
 @import "tailwindcss";
 
 @theme {
-  --color-canvas: #0a0a0b;
-  --color-panel: #161618;
-  --color-panel-2: #1e1e21;
-  --color-line: #2c2c30;
-  --color-accent: #c6ff3d;
-  --color-ink: #0a0a0b;
-  --color-muted: #8b8b93;
+  --color-canvas: #f4f4f7;
+  --color-panel: #ffffff;
+  --color-panel-2: #f2f2f6;
+  --color-line: #eaeaef;
+  --color-accent: #14b88a;
+  --color-ink: #ffffff;
+  --color-muted: #8e8e96;
+  --color-fg: #16171d;
+
+  --shadow-card: 0 1px 2px rgba(20, 20, 30, 0.04), 0 10px 24px rgba(20, 20, 30, 0.06);
+  --shadow-card-lg: 0 2px 4px rgba(20, 20, 30, 0.04), 0 16px 36px rgba(20, 20, 30, 0.08);
 }
 
 :root {
-  color-scheme: dark;
+  color-scheme: light;
 }
 
 body {
   margin: 0;
   font-family: system-ui, "Segoe UI", Roboto, sans-serif;
   background: var(--color-canvas);
-  color: #f4f4f5;
+  color: var(--color-fg);
 }
 
 @keyframes fade-in-up {

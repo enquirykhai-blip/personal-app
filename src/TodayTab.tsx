@@ -6,9 +6,9 @@ import { atRiskOfMissingTwice, habitsDoneToday, isDueToday, isOverdue, longestCu
 import { PRAYER_ICONS, PRAYER_LABELS, togglePrayer } from "./prayerUtils";
 
 const PRIORITY_COLOR: Record<string, string> = {
-  high: "bg-red-400/15 text-red-300",
-  medium: "bg-amber-400/15 text-amber-300",
-  low: "bg-zinc-400/15 text-zinc-300",
+  high: "bg-red-400/15 text-red-600",
+  medium: "bg-amber-400/15 text-amber-700",
+  low: "bg-zinc-400/15 text-zinc-600",
 };
 
 export default function TodayTab() {
@@ -48,24 +48,24 @@ export default function TodayTab() {
   return (
     <div className="mx-auto max-w-2xl">
       <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <div className="rounded-xl border border-line bg-panel p-3 text-center">
-          <p className="text-2xl font-black text-white">
+        <div className="rounded-2xl border border-line bg-panel p-3 text-center shadow-card">
+          <p className="text-2xl font-black text-fg">
             {doneCount}/{totalCount}
           </p>
           <p className="mt-1 text-xs font-semibold text-muted">Tugasan siap</p>
         </div>
-        <div className="rounded-xl border border-line bg-panel p-3 text-center">
+        <div className="rounded-2xl border border-line bg-panel p-3 text-center shadow-card">
           <p className="text-2xl font-black text-accent">{bestStreak}</p>
           <p className="mt-1 text-xs font-semibold text-muted">Streak terpanjang</p>
         </div>
-        <div className="rounded-xl border border-line bg-panel p-3 text-center">
-          <p className="text-2xl font-black text-white">
+        <div className="rounded-2xl border border-line bg-panel p-3 text-center shadow-card">
+          <p className="text-2xl font-black text-fg">
             {habitsToday}/{habits.length}
           </p>
           <p className="mt-1 text-xs font-semibold text-muted">Tabiat hari ini</p>
         </div>
-        <div className="rounded-xl border border-line bg-panel p-3 text-center">
-          <p className="text-2xl font-black text-white">
+        <div className="rounded-2xl border border-line bg-panel p-3 text-center shadow-card">
+          <p className="text-2xl font-black text-fg">
             {todayPrayers.length}/{PRAYERS.length}
           </p>
           <p className="mt-1 text-xs font-semibold text-muted">Solat hari ini</p>
@@ -85,7 +85,7 @@ export default function TodayTab() {
               return (
                 <li
                   key={task.id}
-                  className={`flex animate-fade-in-up items-center gap-3 rounded-xl border p-3.5 ${
+                  className={`flex animate-fade-in-up items-center gap-3 rounded-2xl border p-3.5 shadow-card ${
                     overdue ? "border-red-400/40 bg-red-400/5" : "border-line bg-panel"
                   }`}
                 >
@@ -96,13 +96,13 @@ export default function TodayTab() {
                     className="h-4 w-4 accent-accent"
                   />
                   <div className="flex-1">
-                    <p className="text-sm font-medium text-white">{task.text}</p>
+                    <p className="text-sm font-medium text-fg">{task.text}</p>
                     <div className="mt-1.5 flex items-center gap-2">
                       <span className={`rounded-full px-2 py-0.5 text-xs font-bold ${PRIORITY_COLOR[task.priority ?? "medium"]}`}>
                         {task.priority === "high" ? "Tinggi" : task.priority === "low" ? "Rendah" : "Sederhana"}
                       </span>
                       {task.dueDate && (
-                        <span className={`text-xs ${overdue ? "font-bold text-red-300" : "text-muted"}`}>
+                        <span className={`text-xs ${overdue ? "font-bold text-red-600" : "text-muted"}`}>
                           {overdue ? "Tertunggak" : "Due hari ini"}: {task.dueDate}
                         </span>
                       )}
@@ -127,7 +127,7 @@ export default function TodayTab() {
               <li key={prayer} className="animate-fade-in-up">
                 <button
                   onClick={() => markPrayerDone(prayer)}
-                  className="flex items-center gap-2 rounded-full border border-line bg-panel px-4 py-2 text-sm font-bold text-white transition-transform duration-150 hover:border-accent/50 active:scale-95"
+                  className="flex items-center gap-2 rounded-full border border-line bg-panel px-4 py-2 text-sm font-bold text-fg transition-transform duration-150 hover:border-accent/50 active:scale-95"
                 >
                   <span>{PRAYER_ICONS[prayer]}</span>
                   {PRAYER_LABELS[prayer]}
@@ -151,18 +151,18 @@ export default function TodayTab() {
               return (
                 <li
                   key={habit.id}
-                  className={`flex animate-fade-in-up items-center justify-between gap-3 rounded-xl border p-3.5 ${
+                  className={`flex animate-fade-in-up items-center justify-between gap-3 rounded-2xl border p-3.5 shadow-card ${
                     atRisk ? "border-red-400/40 bg-red-400/5" : "border-line bg-panel"
                   }`}
                 >
                   <div>
-                    <p className="text-sm font-medium text-white">{habit.name}</p>
+                    <p className="text-sm font-medium text-fg">{habit.name}</p>
                     <p className="text-xs text-muted">
                       {currentStreak(habit.completions) > 0
                         ? `🔥 ${currentStreak(habit.completions)} hari berturut-turut`
                         : "Belum ada streak"}
                     </p>
-                    {atRisk && <p className="mt-0.5 animate-shake text-xs font-bold text-red-300">⚠️ Jangan miss 2 hari!</p>}
+                    {atRisk && <p className="mt-0.5 animate-shake text-xs font-bold text-red-600">⚠️ Jangan miss 2 hari!</p>}
                   </div>
                   <button
                     onClick={() => markHabitDone(habit.id)}

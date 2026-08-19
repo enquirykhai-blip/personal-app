@@ -19,10 +19,10 @@ export default function SolatTab() {
 
   return (
     <div className="mx-auto max-w-2xl">
-      <div className="mb-6 flex items-center justify-between rounded-2xl border border-line bg-panel p-4">
+      <div className="mb-6 flex items-center justify-between rounded-3xl border border-line bg-panel p-4 shadow-card">
         <div>
           <p className="text-xs font-bold uppercase tracking-wide text-muted">Solat hari ini</p>
-          <p className="text-2xl font-black text-white">
+          <p className="text-2xl font-black text-fg">
             {todayDone.length}/{PRAYERS.length}
           </p>
         </div>
@@ -45,10 +45,10 @@ export default function SolatTab() {
             <button
               key={prayer}
               onClick={() => toggle(prayer)}
-              className={`flex flex-col items-center gap-2 rounded-2xl border p-3 transition-all duration-150 active:scale-95 ${
+              className={`flex flex-col items-center gap-2 rounded-2xl border p-3 shadow-card transition-all duration-150 active:scale-95 ${
                 done
                   ? "border-accent bg-accent text-ink"
-                  : "border-line bg-panel text-white hover:border-accent/50"
+                  : "border-line bg-panel text-fg hover:border-accent/50"
               }`}
             >
               <span key={done ? "on" : "off"} className={`text-2xl ${done ? "animate-pop" : ""}`}>
@@ -74,11 +74,11 @@ export default function SolatTab() {
             return (
               <div
                 key={day}
-                className={`flex items-center justify-between rounded-xl border p-3 ${
+                className={`flex items-center justify-between rounded-2xl border p-3 shadow-card ${
                   day === today ? "border-accent/50 bg-panel" : "border-line bg-panel"
                 }`}
               >
-                <span className="text-sm font-medium text-white">{label}</span>
+                <span className="text-sm font-medium text-fg">{label}</span>
                 <div className="flex items-center gap-2">
                   <div className="flex gap-1">
                     {PRAYERS.map((p) => (

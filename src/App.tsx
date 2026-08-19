@@ -18,19 +18,19 @@ function App() {
 
   return (
     <div className="min-h-screen bg-canvas">
-      <header className="border-b border-line">
+      <header className="border-b border-line bg-panel">
         <div className="mx-auto flex max-w-2xl flex-col gap-3 px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-1 text-xl font-black tracking-tight sm:text-2xl">
-            <span className="text-white">MY</span>
+            <span className="text-fg">MY</span>
             <span className="rounded-md bg-accent px-1.5 text-ink">SPACE</span>
           </div>
-          <nav className="flex gap-1 overflow-x-auto rounded-full border border-line bg-panel p-1 text-xs sm:text-sm">
+          <nav className="flex gap-1 overflow-x-auto rounded-full border border-line bg-panel-2 p-1 text-xs sm:text-sm">
             {TABS.map((t) => (
               <button
                 key={t.value}
                 onClick={() => setTab(t.value)}
                 className={`shrink-0 rounded-full px-3 py-1.5 font-bold transition-colors duration-150 ${
-                  tab === t.value ? "bg-accent text-ink" : "text-muted hover:text-white"
+                  tab === t.value ? "bg-accent text-ink" : "text-muted hover:text-fg"
                 }`}
               >
                 {t.label}
