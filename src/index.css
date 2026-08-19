@@ -9,9 +9,12 @@
   --color-ink: #ffffff;
   --color-muted: #8e8e96;
   --color-fg: #16171d;
+  --color-dark: #14151a;
+  --color-dark-ink: #ffffff;
 
   --shadow-card: 0 1px 2px rgba(20, 20, 30, 0.04), 0 10px 24px rgba(20, 20, 30, 0.06);
   --shadow-card-lg: 0 2px 4px rgba(20, 20, 30, 0.04), 0 16px 36px rgba(20, 20, 30, 0.08);
+  --shadow-nav: 0 8px 16px rgba(20, 20, 30, 0.08), 0 2px 6px rgba(20, 20, 30, 0.06);
 }
 
 :root {

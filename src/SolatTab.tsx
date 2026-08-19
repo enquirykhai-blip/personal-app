@@ -19,6 +19,8 @@ export default function SolatTab() {
 
   return (
     <div className="mx-auto max-w-2xl">
+      <h1 className="mb-5 text-2xl font-black text-fg">Solat</h1>
+
       <div className="mb-6 flex items-center justify-between rounded-3xl border border-line bg-panel p-4 shadow-card">
         <div>
           <p className="text-xs font-bold uppercase tracking-wide text-muted">Solat hari ini</p>

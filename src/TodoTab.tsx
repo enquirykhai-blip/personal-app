@@ -113,6 +113,8 @@ export default function TodoTab() {
 
   return (
     <div className="mx-auto max-w-2xl">
+      <h1 className="mb-5 text-2xl font-black text-fg">Tugasan</h1>
+
       <form onSubmit={addTask} className="mb-6 flex flex-col gap-3 rounded-3xl border border-line bg-panel p-4 shadow-card">
         <input
           value={text}
@@ -151,7 +153,7 @@ export default function TodoTab() {
           />
           <button
             type="submit"
-            className="ml-auto rounded-lg bg-accent px-5 py-2 text-sm font-bold uppercase tracking-wide text-ink transition-transform duration-150 hover:brightness-110 active:scale-95"
+            className="ml-auto rounded-full bg-dark px-5 py-2 text-sm font-bold uppercase tracking-wide text-dark-ink transition-transform duration-150 active:scale-95"
           >
             Tambah
           </button>
@@ -231,7 +233,7 @@ export default function TodoTab() {
                     </button>
                     <button
                       onClick={() => saveEdit(task.id)}
-                      className="rounded-lg bg-accent px-3 py-1.5 text-xs font-bold uppercase text-ink hover:brightness-110"
+                      className="rounded-full bg-dark px-3 py-1.5 text-xs font-bold uppercase text-dark-ink"
                     >
                       Simpan
                     </button>
@@ -248,12 +250,15 @@ export default function TodoTab() {
                 overdue ? "border-red-400/40 bg-red-400/5" : "border-line bg-panel"
               }`}
             >
-              <input
-                type="checkbox"
-                checked={task.done}
-                onChange={() => toggleTask(task.id)}
-                className="h-4 w-4 accent-accent"
-              />
+              <button
+                onClick={() => toggleTask(task.id)}
+                className={`grid h-11 w-11 shrink-0 place-items-center rounded-full text-sm font-black transition-colors duration-200 ${
+                  task.done ? "bg-accent text-ink" : meta.color
+                }`}
+                aria-label={task.done ? "Tandakan belum siap" : "Tandakan siap"}
+              >
+                {task.done ? "✓" : task.text.slice(0, 1).toUpperCase()}
+              </button>
               <div className="flex-1">
                 <p className={`text-sm font-medium transition-colors duration-200 ${task.done ? "text-muted line-through" : "text-fg"}`}>
                   {task.text}

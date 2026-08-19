@@ -73,6 +73,8 @@ export default function HabitsTab() {
 
   return (
     <div className="mx-auto max-w-2xl">
+      <h1 className="mb-5 text-2xl font-black text-fg">Tabiat</h1>
+
       <form onSubmit={addHabit} className="mb-6 flex flex-col gap-2 rounded-3xl border border-line bg-panel p-4 shadow-card">
         <input
           value={draft.name}
@@ -96,7 +98,7 @@ export default function HabitsTab() {
         </div>
         <button
           type="submit"
-          className="self-end rounded-lg bg-accent px-5 py-2 text-sm font-bold uppercase tracking-wide text-ink transition-transform duration-150 hover:brightness-110 active:scale-95"
+          className="self-end rounded-full bg-dark px-5 py-2 text-sm font-bold uppercase tracking-wide text-dark-ink transition-transform duration-150 active:scale-95"
         >
           Tambah
         </button>
@@ -151,7 +153,7 @@ export default function HabitsTab() {
                       </button>
                       <button
                         onClick={() => saveEdit(habit.id)}
-                        className="rounded-lg bg-accent px-3 py-1.5 text-xs font-bold uppercase text-ink hover:brightness-110"
+                        className="rounded-full bg-dark px-3 py-1.5 text-xs font-bold uppercase text-dark-ink"
                       >
                         Simpan
                       </button>
@@ -159,24 +161,29 @@ export default function HabitsTab() {
                   </div>
                 ) : (
                   <>
-                    <div>
-                      <p className="font-bold text-fg">{habit.name}</p>
-                      {habit.identity && (
-                        <p className="mt-0.5 text-xs font-semibold text-accent">✦ {habit.identity}</p>
-                      )}
-                      {habit.cue && <p className="mt-0.5 text-xs text-muted">🔗 {habit.cue}</p>}
-                      <p className="mt-1 text-xs font-semibold text-muted">
-                        {streak > 0 ? (
-                          <span className="text-accent">🔥 {streak} hari berturut-turut</span>
-                        ) : (
-                          "Belum ada streak"
+                    <div className="flex items-center gap-3">
+                      <div className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-violet-50 text-sm font-black text-violet-600">
+                        {habit.name.slice(0, 1).toUpperCase()}
+                      </div>
+                      <div>
+                        <p className="font-bold text-fg">{habit.name}</p>
+                        {habit.identity && (
+                          <p className="mt-0.5 text-xs font-semibold text-accent">✦ {habit.identity}</p>
                         )}
-                      </p>
-                      {atRisk && (
-                        <p className="mt-1 animate-shake text-xs font-bold text-red-600">
-                          ⚠️ Jangan miss 2 hari berturut-turut!
+                        {habit.cue && <p className="mt-0.5 text-xs text-muted">🔗 {habit.cue}</p>}
+                        <p className="mt-1 text-xs font-semibold text-muted">
+                          {streak > 0 ? (
+                            <span className="text-accent">🔥 {streak} hari berturut-turut</span>
+                          ) : (
+                            "Belum ada streak"
+                          )}
                         </p>
-                      )}
+                        {atRisk && (
+                          <p className="mt-1 animate-shake text-xs font-bold text-red-600">
+                            ⚠️ Jangan miss 2 hari berturut-turut!
+                          </p>
+                        )}
+                      </div>
                     </div>
                     <div className="flex gap-1">
                       <button

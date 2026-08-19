@@ -1,16 +1,17 @@
-import { useState } from "react";
+import { useState, type ReactElement } from "react";
 import TodayTab from "./TodayTab";
 import TodoTab from "./TodoTab";
 import HabitsTab from "./HabitsTab";
 import SolatTab from "./SolatTab";
+import { IconHome, IconList, IconMoon, IconRepeat } from "./icons";
 
 type Tab = "today" | "todo" | "habits" | "solat";
 
-const TABS: { value: Tab; label: string }[] = [
-  { value: "today", label: "Hari Ini" },
-  { value: "todo", label: "Tugasan" },
-  { value: "habits", label: "Tabiat" },
-  { value: "solat", label: "Solat" },
+const TABS: { value: Tab; label: string; icon: (props: { className?: string }) => ReactElement }[] = [
+  { value: "today", label: "Utama", icon: IconHome },
+  { value: "todo", label: "Tugasan", icon: IconList },
+  { value: "habits", label: "Tabiat", icon: IconRepeat },
+  { value: "solat", label: "Solat", icon: IconMoon },
 ];
 
 function App() {
@@ -18,34 +19,33 @@ function App() {
 
   return (
     <div className="min-h-screen bg-canvas">
-      <header className="border-b border-line bg-panel">
-        <div className="mx-auto flex max-w-2xl flex-col gap-3 px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-1 text-xl font-black tracking-tight sm:text-2xl">
-            <span className="text-fg">MY</span>
-            <span className="rounded-md bg-accent px-1.5 text-ink">SPACE</span>
-          </div>
-          <nav className="flex gap-1 overflow-x-auto rounded-full border border-line bg-panel-2 p-1 text-xs sm:text-sm">
-            {TABS.map((t) => (
-              <button
-                key={t.value}
-                onClick={() => setTab(t.value)}
-                className={`shrink-0 rounded-full px-3 py-1.5 font-bold transition-colors duration-150 ${
-                  tab === t.value ? "bg-accent text-ink" : "text-muted hover:text-fg"
-                }`}
-              >
-                {t.label}
-              </button>
-            ))}
-          </nav>
-        </div>
-      </header>
-
-      <main key={tab} className="animate-tab-in px-4 py-8">
-        {tab === "today" && <TodayTab />}
+      <main key={tab} className="animate-tab-in px-4 pb-28 pt-6">
+        {tab === "today" && <TodayTab onNavigate={setTab} />}
         {tab === "todo" && <TodoTab />}
         {tab === "habits" && <HabitsTab />}
         {tab === "solat" && <SolatTab />}
       </main>
+
+      <nav className="fixed inset-x-0 bottom-0 z-10 flex justify-center px-4 pb-4">
+        <div className="flex w-full max-w-sm items-center justify-between gap-1 rounded-full border border-line bg-panel p-2 shadow-nav">
+          {TABS.map((t) => {
+            const Icon = t.icon;
+            const active = tab === t.value;
+            return (
+              <button
+                key={t.value}
+                onClick={() => setTab(t.value)}
+                className={`flex flex-1 flex-col items-center gap-0.5 rounded-full py-2 transition-colors duration-150 ${
+                  active ? "bg-accent text-ink" : "text-muted hover:text-fg"
+                }`}
+              >
+                <Icon className="h-5 w-5" />
+                <span className="text-[10px] font-bold">{t.label}</span>
+              </button>
+            );
+          })}
+        </div>
+      </nav>
     </div>
   );
 }
