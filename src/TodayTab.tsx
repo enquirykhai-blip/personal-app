@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { cx } from "./cx";
 import { useAppData } from "./appData";
-import SyncBadge from "./SyncBadge";
+
 import { PRAYERS, type Task } from "./types";
 import { currentStreak, todayISO } from "./dateUtils";
 import {
@@ -15,7 +15,7 @@ import {
 import { PRAYER_LABELS, togglePrayer } from "./prayerUtils";
 import type { Tab } from "./App";
 import { IconList, IconMoon, IconPlus, IconRepeat, IconTarget } from "./icons";
-import { Button, Card, Checkbox, Chip, EmptyState, ProgressRing, SectionHeader } from "./ui";
+import { Button, Card, Checkbox, Chip, EmptyState, PriorityMark, ProgressRing, SectionHeader } from "./ui";
 
 function greeting(): string {
   const h = new Date().getHours();
@@ -25,16 +25,13 @@ function greeting(): string {
   return "Selamat malam";
 }
 
-function priorityTone(p: Task["priority"]) {
-  return p === "high" ? "danger" : p === "low" ? "neutral" : "warn";
-}
-
 function priorityLabel(p: Task["priority"]) {
   return p === "high" ? "Tinggi" : p === "low" ? "Rendah" : "Sederhana";
 }
 
 export default function TodayTab({ onNavigate }: { onNavigate: (tab: Tab, taskId?: string) => void }) {
-  const { tasks, setTasks, habits, setHabits, prayers: prayerLog, setPrayers: setPrayerLog } = useAppData();
+  const { tasks, setTasks, habits, setHabits, prayers: prayerLog, setPrayers: setPrayerLog, profile } =
+    useAppData();
   const today = todayISO();
 
   const openTasks = useMemo(() => sortTasks(tasks.filter((t) => !t.done)), [tasks]);
@@ -101,6 +98,14 @@ export default function TodayTab({ onNavigate }: { onNavigate: (tab: Tab, taskId
   ];
 
   const focusProgress = focusTask ? subtaskProgress(focusTask) : null;
+  const focusMinutes = (focusTask?.subtasks ?? []).reduce((n, st) => n + (st.minutes ?? 0), 0);
+
+  const initials = (profile.name ?? "")
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((w) => w[0]!.toUpperCase())
+    .join("") || "MS";
 
   return (
     <div className="mx-auto max-w-2xl">
@@ -108,9 +113,18 @@ export default function TodayTab({ onNavigate }: { onNavigate: (tab: Tab, taskId
       <header className="mb-6 flex items-start justify-between gap-4">
         <div>
           <p className="text-caption font-medium text-ink-3">{dateLabel}</p>
-          <h1 className="mt-0.5 text-display text-ink">{greeting()}</h1>
+          <h1 className="mt-0.5 text-display text-ink">
+            {greeting()}
+            {profile.name ? `, ${profile.name}` : ""}
+          </h1>
         </div>
-        <SyncBadge />
+        <button
+          onClick={() => onNavigate("settings")}
+          aria-label="Buka tetapan"
+          className="grid h-11 w-11 shrink-0 place-items-center rounded-full border border-ink bg-ink text-label font-bold text-white transition-transform active:scale-95"
+        >
+          {initials}
+        </button>
       </header>
 
       {/* Focus — the one thing to do next */}
@@ -125,14 +139,18 @@ export default function TodayTab({ onNavigate }: { onNavigate: (tab: Tab, taskId
               <div className="min-w-0 flex-1">
                 <p className="text-title text-ink">{focusTask.text}</p>
                 <div className="mt-2 flex flex-wrap items-center gap-1.5">
-                  <Chip tone={priorityTone(focusTask.priority)}>{priorityLabel(focusTask.priority)}</Chip>
-                  {isOverdue(focusTask) && <Chip tone="danger">Tertunggak</Chip>}
-                  {isDueToday(focusTask) && <Chip tone="info">Perlu siap hari ini</Chip>}
+                  <Chip>
+                    <PriorityMark level={focusTask.priority ?? "medium"} />
+                    {priorityLabel(focusTask.priority)}
+                  </Chip>
+                  {isOverdue(focusTask) && <Chip tone="strong">Tertunggak</Chip>}
+                  {isDueToday(focusTask) && <Chip>Perlu siap hari ini</Chip>}
                   {focusProgress && focusProgress.total > 0 && (
-                    <Chip tone="plum">
+                    <Chip>
                       {focusProgress.done}/{focusProgress.total} langkah
                     </Chip>
                   )}
+                  {focusMinutes > 0 && <Chip>~{focusMinutes} min</Chip>}
                 </div>
               </div>
             </div>

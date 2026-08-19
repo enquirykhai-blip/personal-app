@@ -5,6 +5,13 @@ export interface Subtask {
   id: string;
   text: string;
   done: boolean;
+  /** Set by AI-generated steps; manual steps leave these empty. */
+  emoji?: string;
+  minutes?: number;
+}
+
+export interface Profile {
+  name?: string;
 }
 
 export interface Task {

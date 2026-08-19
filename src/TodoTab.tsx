@@ -5,7 +5,7 @@ import { useAppData } from "./appData";
 import type { Subtask, Task, TaskCategory, TaskPriority } from "./types";
 import { isOverdue, sortTasks, subtaskProgress } from "./statsUtils";
 import { todayISO } from "./dateUtils";
-import { DEFAULT_OPENROUTER_MODEL, detectProvider, generateSubtasks } from "./ai";
+import { DEFAULT_OPENROUTER_MODEL, generateSubtasks } from "./ai";
 import {
   IconChevronDown,
   IconPencil,
@@ -17,7 +17,7 @@ import {
   IconTrash,
   IconX,
 } from "./icons";
-import { Button, Card, Checkbox, EmptyState, IconButton, SelectField, TextField } from "./ui";
+import { Button, Card, Checkbox, EmptyState, IconButton, PriorityMark, SelectField, TextField } from "./ui";
 
 const CATEGORIES: { value: TaskCategory; label: string }[] = [
   { value: "personal", label: "Peribadi" },
@@ -26,10 +26,10 @@ const CATEGORIES: { value: TaskCategory; label: string }[] = [
   { value: "other", label: "Lain-lain" },
 ];
 
-const PRIORITIES: { value: TaskPriority; label: string; dot: string }[] = [
-  { value: "high", label: "Tinggi", dot: "bg-danger" },
-  { value: "medium", label: "Sederhana", dot: "bg-warn" },
-  { value: "low", label: "Rendah", dot: "bg-ink-3" },
+const PRIORITIES: { value: TaskPriority; label: string }[] = [
+  { value: "high", label: "Tinggi" },
+  { value: "medium", label: "Sederhana" },
+  { value: "low", label: "Rendah" },
 ];
 
 function categoryLabel(c: TaskCategory) {
@@ -53,6 +53,14 @@ function dueLabel(iso: string): string {
   return new Date(iso + "T00:00:00").toLocaleDateString("ms-MY", { day: "numeric", month: "short" });
 }
 
+/** "45 min" / "1j 30m" — short enough for a badge. */
+function durationLabel(minutes: number): string {
+  if (minutes < 60) return `${minutes} min`;
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  return m ? `${h}j ${m}m` : `${h} jam`;
+}
+
 type Filter = "active" | "done" | "all";
 
 const FILTERS: { value: Filter; label: string }[] = [
@@ -70,9 +78,9 @@ interface EditDraft {
 
 export default function TodoTab({ expandTaskId }: { expandTaskId?: string | null }) {
   const { tasks, setTasks } = useAppData();
-  /* Key stays under its original storage name so existing users keep theirs. */
-  const [apiKey, setApiKey] = useLocalStorage("gemini_api_key", "");
-  const [aiModel, setAiModel] = useLocalStorage("ai_model", DEFAULT_OPENROUTER_MODEL);
+  /* Read-only here: the key and model are configured in Settings. */
+  const [apiKey] = useLocalStorage("gemini_api_key", "");
+  const [aiModel] = useLocalStorage("ai_model", DEFAULT_OPENROUTER_MODEL);
 
   const [text, setText] = useState("");
   const [category, setCategory] = useState<TaskCategory>("personal");
@@ -90,9 +98,6 @@ export default function TodoTab({ expandTaskId }: { expandTaskId?: string | null
   const [expandedId, setExpandedId] = useState<string | null>(expandTaskId ?? null);
   const [subtaskDraft, setSubtaskDraft] = useState("");
 
-  const [apiKeyDraft, setApiKeyDraft] = useState("");
-  const [modelDraft, setModelDraft] = useState(aiModel);
-  const [showKeyForm, setShowKeyForm] = useState(false);
   const [aiLoadingId, setAiLoadingId] = useState<string | null>(null);
   const [aiError, setAiError] = useState<{ id: string; message: string } | null>(null);
 
@@ -133,7 +138,6 @@ export default function TodoTab({ expandTaskId }: { expandTaskId?: string | null
     setExpandedId(expandedId === id ? null : id);
     setSubtaskDraft("");
     setAiError(null);
-    setShowKeyForm(false);
   }
 
   function addSubtask(taskId: string) {
@@ -164,26 +168,22 @@ export default function TodoTab({ expandTaskId }: { expandTaskId?: string | null
     );
   }
 
-  function saveApiKey(e: React.FormEvent) {
-    e.preventDefault();
-    const trimmed = apiKeyDraft.trim();
-    if (!trimmed) return;
-    setApiKey(trimmed);
-    setAiModel(modelDraft.trim() || DEFAULT_OPENROUTER_MODEL);
-    setApiKeyDraft("");
-    setShowKeyForm(false);
-  }
-
   async function handleGenerate(task: Task) {
     setAiError(null);
     if (!apiKey) {
-      setShowKeyForm(true);
+      setAiError({ id: task.id, message: "Tambah API key dalam Tetapan untuk guna AI." });
       return;
     }
     setAiLoadingId(task.id);
     try {
       const generated = await generateSubtasks(apiKey, task.text, aiModel);
-      const newSubtasks: Subtask[] = generated.map((t) => ({ id: crypto.randomUUID(), text: t, done: false }));
+      const newSubtasks: Subtask[] = generated.map((g) => ({
+        id: crypto.randomUUID(),
+        text: g.text,
+        done: false,
+        emoji: g.emoji || undefined,
+        minutes: g.minutes || undefined,
+      }));
       setTasks((prev) =>
         prev.map((t) => (t.id === task.id ? { ...t, subtasks: [...(t.subtasks ?? []), ...newSubtasks] } : t)),
       );
@@ -234,7 +234,6 @@ export default function TodoTab({ expandTaskId }: { expandTaskId?: string | null
   }, [tasks, filter, search]);
 
   const remaining = tasks.filter((t) => !t.done).length;
-  const draftProvider = detectProvider(apiKeyDraft);
 
   return (
     <div className="mx-auto max-w-2xl">
@@ -361,21 +360,25 @@ export default function TodoTab({ expandTaskId }: { expandTaskId?: string | null
             const pMeta = priorityMeta(task.priority);
             const overdue = isOverdue(task);
             const progress = subtaskProgress(task);
+            /* Sum of the AI's per-step estimates: a concrete answer to
+               "how long will this actually take?" */
+            const totalMinutes = (task.subtasks ?? []).reduce((n, st) => n + (st.minutes ?? 0), 0);
             const isExpanded = expandedId === task.id;
             const isEditing = editingId === task.id;
 
             /* Built as a list so a separator can never dangle at the end of a wrapped line. */
             const metaParts = [
               <span key="p" className="inline-flex items-center gap-1.5">
-                <span className={cx("h-1.5 w-1.5 rounded-full", pMeta.dot)} aria-hidden="true" />
+                <PriorityMark level={task.priority ?? "medium"} className="text-ink" />
                 {pMeta.label}
               </span>,
               <span key="c">{categoryLabel(task.category)}</span>,
               task.dueDate ? (
-                <span key="d" className={cx(overdue && !task.done && "font-semibold text-danger")}>
+                <span key="d" className={cx(overdue && !task.done && "font-semibold text-ink underline")}>
                   {dueLabel(task.dueDate)}
                 </span>
               ) : null,
+              totalMinutes > 0 ? <span key="t">~{durationLabel(totalMinutes)}</span> : null,
             ].filter(Boolean);
 
             if (isEditing && editDraft) {
@@ -476,7 +479,7 @@ export default function TodoTab({ expandTaskId }: { expandTaskId?: string | null
                       <span
                         className={cx(
                           "inline-flex h-8 shrink-0 items-center gap-1 rounded-full px-2 text-caption font-semibold transition-colors",
-                          isExpanded || progress.total > 0 ? "bg-plum-soft text-plum" : "text-ink-3",
+                          isExpanded || progress.total > 0 ? "bg-surface-2 text-ink" : "text-ink-3",
                         )}
                       >
                         <IconSplit className="h-4 w-4" />
@@ -515,6 +518,17 @@ export default function TodoTab({ expandTaskId }: { expandTaskId?: string | null
                                 onChange={() => toggleSubtask(task.id, s.id)}
                                 label={s.done ? `Tandakan ${s.text} belum siap` : `Tandakan ${s.text} siap`}
                               />
+                              {s.emoji && (
+                                <span
+                                  className={cx(
+                                    "grid h-7 w-7 shrink-0 place-items-center rounded-field bg-surface-2 text-[0.875rem]",
+                                    s.done && "opacity-40",
+                                  )}
+                                  aria-hidden="true"
+                                >
+                                  {s.emoji}
+                                </span>
+                              )}
                               <span
                                 className={cx(
                                   "flex-1 text-label",
@@ -523,6 +537,16 @@ export default function TodoTab({ expandTaskId }: { expandTaskId?: string | null
                               >
                                 {s.text}
                               </span>
+                              {s.minutes ? (
+                                <span
+                                  className={cx(
+                                    "shrink-0 rounded-full border border-border px-1.5 py-0.5 text-[0.6875rem] font-semibold",
+                                    s.done ? "text-ink-3" : "text-ink-2",
+                                  )}
+                                >
+                                  {durationLabel(s.minutes)}
+                                </span>
+                              ) : null}
                               <IconButton
                                 label="Padam langkah"
                                 danger
@@ -562,19 +586,10 @@ export default function TodoTab({ expandTaskId }: { expandTaskId?: string | null
                           variant="secondary"
                           onClick={() => handleGenerate(task)}
                           disabled={aiLoadingId === task.id}
-                          className="border-plum/25 bg-plum-soft text-plum hover:bg-plum-soft/70"
                         >
                           <IconSparkles className={cx("h-4 w-4", aiLoadingId === task.id && "animate-pulse")} />
                           {aiLoadingId === task.id ? "Menjana…" : "Jana dengan AI"}
                         </Button>
-                        {apiKey && (
-                          <button
-                            onClick={() => setShowKeyForm((v) => !v)}
-                            className="text-caption font-medium text-ink-3 underline-offset-2 hover:text-ink hover:underline"
-                          >
-                            Tukar API key
-                          </button>
-                        )}
                       </div>
 
                       {aiError?.id === task.id && (
@@ -599,77 +614,6 @@ export default function TodoTab({ expandTaskId }: { expandTaskId?: string | null
                         </Button>
                       </div>
 
-                      {showKeyForm && (
-                        <form onSubmit={saveApiKey} className="mt-2.5 rounded-field border border-border bg-surface p-3">
-                          <p className="text-caption text-ink-2">
-                            Tampal API key <strong className="font-semibold text-ink">Gemini</strong> atau{" "}
-                            <strong className="font-semibold text-ink">OpenRouter</strong> — jenisnya dikesan automatik.
-                            Key disimpan dalam browser ini sahaja dan tidak pernah masuk ke dalam kod.
-                          </p>
-                          <div className="mt-2 flex gap-2">
-                            <TextField
-                              type="password"
-                              value={apiKeyDraft}
-                              onChange={(e) => setApiKeyDraft(e.target.value)}
-                              placeholder="API key"
-                              aria-label="API key AI"
-                              autoComplete="off"
-                              className="h-10 text-label"
-                            />
-                            <Button type="submit" size="sm" disabled={!apiKeyDraft.trim()}>
-                              Simpan
-                            </Button>
-                          </div>
-
-                          {draftProvider === "openrouter" && (
-                            <div className="mt-2 animate-rise">
-                              <label className="text-caption font-medium text-ink-2" htmlFor={`model-${task.id}`}>
-                                Model OpenRouter
-                              </label>
-                              <TextField
-                                id={`model-${task.id}`}
-                                value={modelDraft}
-                                onChange={(e) => setModelDraft(e.target.value)}
-                                placeholder={DEFAULT_OPENROUTER_MODEL}
-                                className="mt-1 h-10 text-label"
-                              />
-                              <p className="mt-1 text-caption text-ink-3">
-                                Tukar jika model ini tiada pada akaun anda — senarai di{" "}
-                                <a
-                                  href="https://openrouter.ai/models"
-                                  target="_blank"
-                                  rel="noreferrer"
-                                  className="font-semibold text-brand underline underline-offset-2"
-                                >
-                                  openrouter.ai/models
-                                </a>
-                                .
-                              </p>
-                            </div>
-                          )}
-
-                          <p className="mt-2 text-caption text-ink-3">
-                            Dapatkan key:{" "}
-                            <a
-                              href="https://aistudio.google.com/apikey"
-                              target="_blank"
-                              rel="noreferrer"
-                              className="font-semibold text-brand underline underline-offset-2"
-                            >
-                              Google AI Studio
-                            </a>{" "}
-                            ·{" "}
-                            <a
-                              href="https://openrouter.ai/keys"
-                              target="_blank"
-                              rel="noreferrer"
-                              className="font-semibold text-brand underline underline-offset-2"
-                            >
-                              OpenRouter
-                            </a>
-                          </p>
-                        </form>
-                      )}
                     </div>
                   )}
                 </Card>

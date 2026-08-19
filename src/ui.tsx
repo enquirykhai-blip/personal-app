@@ -74,15 +74,12 @@ export function Card({ className, children }: { className?: string; children: Re
 
 /* -------------------------------------------------------------------- Chip */
 
-type ChipTone = "neutral" | "brand" | "danger" | "warn" | "info" | "plum";
+/* Monochrome leaves two useful emphases: quiet, or inverted for urgency. */
+type ChipTone = "neutral" | "strong";
 
 const CHIP_TONE: Record<ChipTone, string> = {
   neutral: "bg-surface-2 text-ink-2",
-  brand: "bg-brand-soft text-brand",
-  danger: "bg-danger-soft text-danger",
-  warn: "bg-warn-soft text-warn",
-  info: "bg-info-soft text-info",
-  plum: "bg-plum-soft text-plum",
+  strong: "bg-ink text-white",
 };
 
 export function Chip({
@@ -149,6 +146,20 @@ export function Checkbox({
         </svg>
       </span>
     </button>
+  );
+}
+
+/* -------------------------------------------------------- Priority mark */
+
+/** Without colour, priority is carried by how much of the circle is filled:
+    full, half, empty. Readable in monochrome and for colour-blind users. */
+export function PriorityMark({ level, className }: { level: "high" | "medium" | "low"; className?: string }) {
+  return (
+    <svg viewBox="0 0 12 12" className={cx("h-2.5 w-2.5 shrink-0", className)} aria-hidden="true">
+      <circle cx="6" cy="6" r="4.6" fill="none" stroke="currentColor" strokeWidth="1.6" />
+      {level === "high" && <circle cx="6" cy="6" r="4.6" fill="currentColor" />}
+      {level === "medium" && <path d="M6 1.4 A4.6 4.6 0 0 1 6 10.6 Z" fill="currentColor" />}
+    </svg>
   );
 }
 

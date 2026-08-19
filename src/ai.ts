@@ -7,13 +7,22 @@ export function detectProvider(apiKey: string): AiProvider {
 
 export const DEFAULT_OPENROUTER_MODEL = "openai/gpt-4o-mini";
 
+export interface GeneratedStep {
+  emoji: string;
+  text: string;
+  minutes: number;
+}
+
 const PROMPT = (taskText: string) =>
   `Pecahkan tugasan ini kepada 3-6 langkah kecil, spesifik, dan boleh disiapkan dengan cepat. ` +
-  `Guna Bahasa Melayu santai. Balas JSON sahaja: {"langkah": ["...", "..."]}. ` +
+  `Guna Bahasa Melayu santai. Untuk setiap langkah beri satu emoji yang mewakili langkah itu, ` +
+  `teks langkah, dan anggaran masa dalam minit (nombor bulat, realistik). ` +
+  `Balas JSON sahaja dengan bentuk: ` +
+  `{"langkah": [{"emoji": "📋", "teks": "...", "minit": 10}]}. ` +
   `Tugasan: "${taskText}"`;
 
 /** Models sometimes wrap JSON in markdown fences or prose; recover the payload. */
-function parseSteps(raw: string): string[] {
+function parseSteps(raw: string): GeneratedStep[] {
   const cleaned = raw.trim().replace(/^```(?:json)?/i, "").replace(/```$/, "").trim();
   let data: unknown;
   try {
@@ -33,9 +42,27 @@ function parseSteps(raw: string): string[] {
         : null;
 
   if (!list) throw new Error("AI tidak mengembalikan senarai langkah yang sah.");
+
   return list
-    .map((s) => (typeof s === "string" ? s.trim() : ""))
-    .filter((s) => s.length > 0)
+    .map((item): GeneratedStep | null => {
+      // Older/simpler replies may still be plain strings.
+      if (typeof item === "string") {
+        const text = item.trim();
+        return text ? { emoji: "", text, minutes: 0 } : null;
+      }
+      if (!item || typeof item !== "object") return null;
+      const o = item as Record<string, unknown>;
+      const text = String(o.teks ?? o.text ?? o.langkah ?? "").trim();
+      if (!text) return null;
+      const rawMinutes = Number(o.minit ?? o.minutes ?? 0);
+      return {
+        // Keep only the leading glyph so a stray word cannot bloat the badge.
+        emoji: String(o.emoji ?? "").trim().slice(0, 4),
+        text,
+        minutes: Number.isFinite(rawMinutes) && rawMinutes > 0 ? Math.round(rawMinutes) : 0,
+      };
+    })
+    .filter((s): s is GeneratedStep => s !== null)
     .slice(0, 8);
 }
 
@@ -62,7 +89,7 @@ async function send(url: string, init: RequestInit, host: string): Promise<Respo
   }
 }
 
-async function viaGemini(apiKey: string, taskText: string): Promise<string[]> {
+async function viaGemini(apiKey: string, taskText: string): Promise<GeneratedStep[]> {
   const res = await send(
     `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${encodeURIComponent(apiKey)}`,
     {
@@ -72,7 +99,18 @@ async function viaGemini(apiKey: string, taskText: string): Promise<string[]> {
         contents: [{ parts: [{ text: PROMPT(taskText) }] }],
         generationConfig: {
           responseMimeType: "application/json",
-          responseSchema: { type: "ARRAY", items: { type: "STRING" } },
+          responseSchema: {
+            type: "ARRAY",
+            items: {
+              type: "OBJECT",
+              properties: {
+                emoji: { type: "STRING" },
+                teks: { type: "STRING" },
+                minit: { type: "INTEGER" },
+              },
+              required: ["emoji", "teks", "minit"],
+            },
+          },
         },
       }),
     },
@@ -86,7 +124,7 @@ async function viaGemini(apiKey: string, taskText: string): Promise<string[]> {
   return parseSteps(text);
 }
 
-async function viaOpenRouter(apiKey: string, taskText: string, model: string): Promise<string[]> {
+async function viaOpenRouter(apiKey: string, taskText: string, model: string): Promise<GeneratedStep[]> {
   const res = await send(
     "https://openrouter.ai/api/v1/chat/completions",
     {
@@ -116,7 +154,7 @@ export async function generateSubtasks(
   apiKey: string,
   taskText: string,
   model: string = DEFAULT_OPENROUTER_MODEL,
-): Promise<string[]> {
+): Promise<GeneratedStep[]> {
   const key = apiKey.trim();
   return detectProvider(key) === "openrouter"
     ? viaOpenRouter(key, taskText, model.trim() || DEFAULT_OPENROUTER_MODEL)

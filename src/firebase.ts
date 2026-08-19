@@ -51,6 +51,7 @@ export type CloudState = {
   tasks?: unknown;
   habits?: unknown;
   prayers?: unknown;
+  profile?: unknown;
   updatedAt?: unknown;
 };
 

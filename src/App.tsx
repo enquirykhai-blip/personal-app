@@ -4,15 +4,17 @@ import TodayTab from "./TodayTab";
 import TodoTab from "./TodoTab";
 import HabitsTab from "./HabitsTab";
 import SolatTab from "./SolatTab";
-import { IconHome, IconList, IconMoon, IconRepeat } from "./icons";
+import SettingsTab from "./SettingsTab";
+import { IconHome, IconList, IconMoon, IconRepeat, IconSettings } from "./icons";
 
-export type Tab = "today" | "todo" | "habits" | "solat";
+export type Tab = "today" | "todo" | "habits" | "solat" | "settings";
 
 const TABS: { value: Tab; label: string; icon: (p: { className?: string }) => ReactElement }[] = [
   { value: "today", label: "Utama", icon: IconHome },
   { value: "todo", label: "Tugasan", icon: IconList },
   { value: "habits", label: "Tabiat", icon: IconRepeat },
   { value: "solat", label: "Solat", icon: IconMoon },
+  { value: "settings", label: "Tetapan", icon: IconSettings },
 ];
 
 export default function App() {
@@ -33,13 +35,14 @@ export default function App() {
         {tab === "todo" && <TodoTab expandTaskId={expandTaskId} />}
         {tab === "habits" && <HabitsTab />}
         {tab === "solat" && <SolatTab />}
+        {tab === "settings" && <SettingsTab />}
       </main>
 
       <nav
         aria-label="Navigasi utama"
         className="fixed inset-x-0 bottom-0 z-20 px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))]"
       >
-        <div className="mx-auto flex max-w-sm items-center gap-1 rounded-full border border-border bg-surface/85 p-1.5 shadow-e3 backdrop-blur-xl">
+        <div className="mx-auto flex max-w-md items-center gap-0.5 rounded-full border border-border bg-surface/85 p-1.5 shadow-e3 backdrop-blur-xl">
           {TABS.map((t) => {
             const Icon = t.icon;
             const active = tab === t.value;

@@ -10,10 +10,18 @@ Firebase (lihat di bawah).
 
 - **Hari Ini** — satu "fokus sekarang", ringkasan kemajuan, solat & tabiat yang belum siap.
 - **Tugasan** — keutamaan, kategori, tarikh akhir, carian, dan pecahan kepada langkah kecil.
-  Langkah boleh dijana dengan AI (Gemini atau OpenRouter, guna API key anda sendiri).
+  Langkah boleh dijana dengan AI (Gemini atau OpenRouter): setiap langkah datang dengan
+  emoji dan anggaran masa, dan jumlahnya dipaparkan pada tugasan.
 - **Tabiat** — pemicu (habit stacking), pernyataan identiti, streak, amaran
   "jangan terlepas dua hari", dan heatmap bulanan.
 - **Solat** — jejak lima waktu, streak hari lengkap, dan heatmap bulanan.
+- **Tetapan** — semua yang teknikal di satu tempat: nama profil, status sync dan
+  log masuk, API key AI dan model, serta eksport/import/padam data.
+
+Antara muka sengaja monokrom: hitam, putih, dan kelabu sahaja. Keutamaan dikodkan
+dengan bentuk (bulatan penuh / separa / kosong), bukan warna, supaya ia kekal jelas
+tanpa bergantung pada penglihatan warna. Satu-satunya warna dalam app ialah emoji
+pada langkah yang dijana AI.
 
 ## Jalankan secara tempatan
 

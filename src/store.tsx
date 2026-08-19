@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import type { Habit, PrayerLog, Task } from "./types";
+import type { Habit, PrayerLog, Profile, Task } from "./types";
 import { firebaseEnabled, pushState, startAuth, subscribeToState } from "./firebase";
 import { AppDataContext, type AppData, type SyncStatus } from "./appData";
 
@@ -24,6 +24,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
   const [tasks, setTasksState] = useState<Task[]>(() => readLocal<Task[]>("tasks", []));
   const [habits, setHabitsState] = useState<Habit[]>(() => readLocal<Habit[]>("habits", []));
   const [prayers, setPrayersState] = useState<PrayerLog>(() => readLocal<PrayerLog>("prayers", {}));
+  const [profile, setProfileState] = useState<Profile>(() => readLocal<Profile>("profile", {}));
 
   const [uid, setUid] = useState<string | null>(null);
   const [isAnonymous, setIsAnonymous] = useState(true);
@@ -33,17 +34,18 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
   /* Writes we originate must not be echoed back as remote changes. */
   const applyingRemote = useRef(false);
   const pushTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const latest = useRef({ tasks, habits, prayers });
+  const latest = useRef({ tasks, habits, prayers, profile });
 
   /* Gives the debounced push and the seed path access to the newest state
      without re-creating them on every keystroke. */
   useEffect(() => {
-    latest.current = { tasks, habits, prayers };
-  }, [tasks, habits, prayers]);
+    latest.current = { tasks, habits, prayers, profile };
+  }, [tasks, habits, prayers, profile]);
 
   useEffect(() => writeLocal("tasks", tasks), [tasks]);
   useEffect(() => writeLocal("habits", habits), [habits]);
   useEffect(() => writeLocal("prayers", prayers), [prayers]);
+  useEffect(() => writeLocal("profile", profile), [profile]);
 
   /* --- Auth --- */
   useEffect(() => {
@@ -72,6 +74,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
         if (Array.isArray(state.tasks)) setTasksState(state.tasks as Task[]);
         if (Array.isArray(state.habits)) setHabitsState(state.habits as Habit[]);
         if (state.prayers && typeof state.prayers === "object") setPrayersState(state.prayers as PrayerLog);
+        if (state.profile && typeof state.profile === "object") setProfileState(state.profile as Profile);
         setSync("synced");
         // Release on the next tick, after the state updates have flushed.
         setTimeout(() => {
@@ -79,8 +82,8 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
         }, 0);
       } else {
         // First run for this account: seed the cloud from whatever is local.
-        const { tasks: t, habits: h, prayers: p } = latest.current;
-        pushState(uid, { tasks: t, habits: h, prayers: p })
+        const { tasks: t, habits: h, prayers: p, profile: pr } = latest.current;
+        pushState(uid, { tasks: t, habits: h, prayers: p, profile: pr })
           .then(() => setSync("synced"))
           .catch(() => setSync("error"));
       }
@@ -98,8 +101,8 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     setSync("saving");
     if (pushTimer.current) clearTimeout(pushTimer.current);
     pushTimer.current = setTimeout(() => {
-      const { tasks: t, habits: h, prayers: p } = latest.current;
-      pushState(uid, { tasks: t, habits: h, prayers: p })
+      const { tasks: t, habits: h, prayers: p, profile: pr } = latest.current;
+      pushState(uid, { tasks: t, habits: h, prayers: p, profile: pr })
         .then(() => setSync("synced"))
         .catch(() => setSync("error"));
     }, 700);
@@ -127,9 +130,33 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     [schedulePush],
   );
 
+  const setProfile = useCallback(
+    (update: (prev: Profile) => Profile) => {
+      setProfileState((prev) => update(prev));
+      schedulePush();
+    },
+    [schedulePush],
+  );
+
+  const replaceAll = useCallback(
+    (data: { tasks: Task[]; habits: Habit[]; prayers: PrayerLog; profile: Profile }) => {
+      setTasksState(data.tasks);
+      setHabitsState(data.habits);
+      setPrayersState(data.prayers);
+      setProfileState(data.profile);
+      schedulePush();
+    },
+    [schedulePush],
+  );
+
   const value = useMemo<AppData>(
-    () => ({ tasks, habits, prayers, setTasks, setHabits, setPrayers, sync, isAnonymous, accountLabel }),
-    [tasks, habits, prayers, setTasks, setHabits, setPrayers, sync, isAnonymous, accountLabel],
+    () => ({
+      tasks, habits, prayers, profile,
+      setTasks, setHabits, setPrayers, setProfile, replaceAll,
+      sync, isAnonymous, accountLabel,
+    }),
+    [tasks, habits, prayers, profile, setTasks, setHabits, setPrayers, setProfile, replaceAll,
+     sync, isAnonymous, accountLabel],
   );
 
   return <AppDataContext.Provider value={value}>{children}</AppDataContext.Provider>;
