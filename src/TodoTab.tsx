@@ -4,7 +4,7 @@ import { useLocalStorage } from "./useLocalStorage";
 import type { Subtask, Task, TaskCategory, TaskPriority } from "./types";
 import { isOverdue, sortTasks, subtaskProgress } from "./statsUtils";
 import { todayISO } from "./dateUtils";
-import { generateSubtasks } from "./ai";
+import { DEFAULT_OPENROUTER_MODEL, detectProvider, generateSubtasks } from "./ai";
 import {
   IconChevronDown,
   IconPencil,
@@ -69,7 +69,9 @@ interface EditDraft {
 
 export default function TodoTab({ expandTaskId }: { expandTaskId?: string | null }) {
   const [tasks, setTasks] = useLocalStorage<Task[]>("tasks", []);
+  /* Key stays under its original storage name so existing users keep theirs. */
   const [apiKey, setApiKey] = useLocalStorage("gemini_api_key", "");
+  const [aiModel, setAiModel] = useLocalStorage("ai_model", DEFAULT_OPENROUTER_MODEL);
 
   const [text, setText] = useState("");
   const [category, setCategory] = useState<TaskCategory>("personal");
@@ -88,6 +90,7 @@ export default function TodoTab({ expandTaskId }: { expandTaskId?: string | null
   const [subtaskDraft, setSubtaskDraft] = useState("");
 
   const [apiKeyDraft, setApiKeyDraft] = useState("");
+  const [modelDraft, setModelDraft] = useState(aiModel);
   const [showKeyForm, setShowKeyForm] = useState(false);
   const [aiLoadingId, setAiLoadingId] = useState<string | null>(null);
   const [aiError, setAiError] = useState<{ id: string; message: string } | null>(null);
@@ -165,6 +168,7 @@ export default function TodoTab({ expandTaskId }: { expandTaskId?: string | null
     const trimmed = apiKeyDraft.trim();
     if (!trimmed) return;
     setApiKey(trimmed);
+    setAiModel(modelDraft.trim() || DEFAULT_OPENROUTER_MODEL);
     setApiKeyDraft("");
     setShowKeyForm(false);
   }
@@ -177,7 +181,7 @@ export default function TodoTab({ expandTaskId }: { expandTaskId?: string | null
     }
     setAiLoadingId(task.id);
     try {
-      const generated = await generateSubtasks(apiKey, task.text);
+      const generated = await generateSubtasks(apiKey, task.text, aiModel);
       const newSubtasks: Subtask[] = generated.map((t) => ({ id: crypto.randomUUID(), text: t, done: false }));
       setTasks((prev) =>
         prev.map((t) => (t.id === task.id ? { ...t, subtasks: [...(t.subtasks ?? []), ...newSubtasks] } : t)),
@@ -229,6 +233,7 @@ export default function TodoTab({ expandTaskId }: { expandTaskId?: string | null
   }, [tasks, filter, search]);
 
   const remaining = tasks.filter((t) => !t.done).length;
+  const draftProvider = detectProvider(apiKeyDraft);
 
   return (
     <div className="mx-auto max-w-2xl">
@@ -596,16 +601,9 @@ export default function TodoTab({ expandTaskId }: { expandTaskId?: string | null
                       {showKeyForm && (
                         <form onSubmit={saveApiKey} className="mt-2.5 rounded-field border border-border bg-surface p-3">
                           <p className="text-caption text-ink-2">
-                            API key Gemini disimpan dalam browser ini sahaja. Dapatkan percuma di{" "}
-                            <a
-                              href="https://aistudio.google.com/apikey"
-                              target="_blank"
-                              rel="noreferrer"
-                              className="font-semibold text-brand underline underline-offset-2"
-                            >
-                              aistudio.google.com/apikey
-                            </a>
-                            .
+                            Tampal API key <strong className="font-semibold text-ink">Gemini</strong> atau{" "}
+                            <strong className="font-semibold text-ink">OpenRouter</strong> — jenisnya dikesan automatik.
+                            Key disimpan dalam browser ini sahaja dan tidak pernah masuk ke dalam kod.
                           </p>
                           <div className="mt-2 flex gap-2">
                             <TextField
@@ -613,7 +611,7 @@ export default function TodoTab({ expandTaskId }: { expandTaskId?: string | null
                               value={apiKeyDraft}
                               onChange={(e) => setApiKeyDraft(e.target.value)}
                               placeholder="API key"
-                              aria-label="API key Gemini"
+                              aria-label="API key AI"
                               autoComplete="off"
                               className="h-10 text-label"
                             />
@@ -621,6 +619,54 @@ export default function TodoTab({ expandTaskId }: { expandTaskId?: string | null
                               Simpan
                             </Button>
                           </div>
+
+                          {draftProvider === "openrouter" && (
+                            <div className="mt-2 animate-rise">
+                              <label className="text-caption font-medium text-ink-2" htmlFor={`model-${task.id}`}>
+                                Model OpenRouter
+                              </label>
+                              <TextField
+                                id={`model-${task.id}`}
+                                value={modelDraft}
+                                onChange={(e) => setModelDraft(e.target.value)}
+                                placeholder={DEFAULT_OPENROUTER_MODEL}
+                                className="mt-1 h-10 text-label"
+                              />
+                              <p className="mt-1 text-caption text-ink-3">
+                                Tukar jika model ini tiada pada akaun anda — senarai di{" "}
+                                <a
+                                  href="https://openrouter.ai/models"
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="font-semibold text-brand underline underline-offset-2"
+                                >
+                                  openrouter.ai/models
+                                </a>
+                                .
+                              </p>
+                            </div>
+                          )}
+
+                          <p className="mt-2 text-caption text-ink-3">
+                            Dapatkan key:{" "}
+                            <a
+                              href="https://aistudio.google.com/apikey"
+                              target="_blank"
+                              rel="noreferrer"
+                              className="font-semibold text-brand underline underline-offset-2"
+                            >
+                              Google AI Studio
+                            </a>{" "}
+                            ·{" "}
+                            <a
+                              href="https://openrouter.ai/keys"
+                              target="_blank"
+                              rel="noreferrer"
+                              className="font-semibold text-brand underline underline-offset-2"
+                            >
+                              OpenRouter
+                            </a>
+                          </p>
                         </form>
                       )}
                     </div>
