@@ -1,135 +1,171 @@
 type IconProps = { className?: string };
 
-const base = "1.8";
+const S = 1.75;
+
+function Svg({ className, children }: IconProps & { children: React.ReactNode }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={S}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden="true"
+    >
+      {children}
+    </svg>
+  );
+}
 
 export function IconHome({ className }: IconProps) {
   return (
-    <svg viewBox="0 0 24 24" fill="none" className={className}>
-      <path d="M4 11.5 12 4l8 7.5" stroke="currentColor" strokeWidth={base} strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M6 10v9a1 1 0 0 0 1 1h3v-5a2 2 0 1 1 4 0v5h3a1 1 0 0 0 1-1v-9" stroke="currentColor" strokeWidth={base} strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
+    <Svg className={className}>
+      <path d="M3.8 10.9 12 4.2l8.2 6.7" />
+      <path d="M5.8 9.6V19a1 1 0 0 0 1 1h3.4v-4.4a1.8 1.8 0 0 1 3.6 0V20h3.4a1 1 0 0 0 1-1V9.6" />
+    </Svg>
   );
 }
 
 export function IconList({ className }: IconProps) {
   return (
-    <svg viewBox="0 0 24 24" fill="none" className={className}>
-      <path d="M8 6h12M8 12h12M8 18h12" stroke="currentColor" strokeWidth={base} strokeLinecap="round" />
-      <circle cx="4" cy="6" r="1.4" fill="currentColor" />
-      <circle cx="4" cy="12" r="1.4" fill="currentColor" />
-      <circle cx="4" cy="18" r="1.4" fill="currentColor" />
-    </svg>
+    <Svg className={className}>
+      <path d="M9 6.5h11M9 12h11M9 17.5h11" />
+      <path d="M4 6.5h.01M4 12h.01M4 17.5h.01" strokeWidth="2.4" />
+    </Svg>
   );
 }
 
 export function IconRepeat({ className }: IconProps) {
   return (
-    <svg viewBox="0 0 24 24" fill="none" className={className}>
-      <path d="M4 12a8 8 0 0 1 13.66-5.66L20 8" stroke="currentColor" strokeWidth={base} strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M20 4v4h-4" stroke="currentColor" strokeWidth={base} strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M20 12a8 8 0 0 1-13.66 5.66L4 16" stroke="currentColor" strokeWidth={base} strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M4 20v-4h4" stroke="currentColor" strokeWidth={base} strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
+    <Svg className={className}>
+      <path d="M4.2 12a7.8 7.8 0 0 1 13.3-5.5L20 9" />
+      <path d="M20 4.6V9h-4.4" />
+      <path d="M19.8 12a7.8 7.8 0 0 1-13.3 5.5L4 15" />
+      <path d="M4 19.4V15h4.4" />
+    </Svg>
   );
 }
 
 export function IconMoon({ className }: IconProps) {
   return (
-    <svg viewBox="0 0 24 24" fill="none" className={className}>
-      <path
-        d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5Z"
-        stroke="currentColor"
-        strokeWidth={base}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
+    <Svg className={className}>
+      <path d="M20 14.3A8.4 8.4 0 0 1 9.7 4 8.4 8.4 0 1 0 20 14.3Z" />
+    </Svg>
   );
 }
 
 export function IconSearch({ className }: IconProps) {
   return (
-    <svg viewBox="0 0 24 24" fill="none" className={className}>
-      <circle cx="11" cy="11" r="6.5" stroke="currentColor" strokeWidth={base} />
-      <path d="m20 20-4-4" stroke="currentColor" strokeWidth={base} strokeLinecap="round" />
-    </svg>
+    <Svg className={className}>
+      <circle cx="11" cy="11" r="6.4" />
+      <path d="m19.5 19.5-3.9-3.9" />
+    </Svg>
   );
 }
 
-export function IconBell({ className }: IconProps) {
+export function IconPlus({ className }: IconProps) {
   return (
-    <svg viewBox="0 0 24 24" fill="none" className={className}>
-      <path
-        d="M6 10a6 6 0 1 1 12 0c0 4 1.5 5.5 1.5 5.5H4.5S6 14 6 10Z"
-        stroke="currentColor"
-        strokeWidth={base}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path d="M10 19a2 2 0 0 0 4 0" stroke="currentColor" strokeWidth={base} strokeLinecap="round" />
-    </svg>
+    <Svg className={className}>
+      <path d="M12 5.5v13M5.5 12h13" />
+    </Svg>
+  );
+}
+
+export function IconX({ className }: IconProps) {
+  return (
+    <Svg className={className}>
+      <path d="m6.5 6.5 11 11M17.5 6.5l-11 11" />
+    </Svg>
+  );
+}
+
+export function IconPencil({ className }: IconProps) {
+  return (
+    <Svg className={className}>
+      <path d="M4.5 19.5h3.2l9.1-9.1a2.3 2.3 0 0 0-3.2-3.2l-9.1 9.1v3.2Z" />
+      <path d="m13.4 8 2.6 2.6" />
+    </Svg>
+  );
+}
+
+export function IconTrash({ className }: IconProps) {
+  return (
+    <Svg className={className}>
+      <path d="M4.5 6.8h15" />
+      <path d="M9.3 6.8V5.4a1.4 1.4 0 0 1 1.4-1.4h2.6a1.4 1.4 0 0 1 1.4 1.4v1.4" />
+      <path d="M6.6 6.8 7.4 19a1.4 1.4 0 0 0 1.4 1.3h6.4a1.4 1.4 0 0 0 1.4-1.3l.8-12.2" />
+    </Svg>
+  );
+}
+
+export function IconSparkles({ className }: IconProps) {
+  return (
+    <Svg className={className}>
+      <path d="M12 4.2 13.4 9l4.8 1.4-4.8 1.4L12 16.6l-1.4-4.8L5.8 10.4 10.6 9 12 4.2Z" />
+      <path d="M18.4 15.6 19 17.4l1.8.6-1.8.6-.6 1.8-.6-1.8-1.8-.6 1.8-.6.6-1.8Z" />
+    </Svg>
+  );
+}
+
+export function IconChevronLeft({ className }: IconProps) {
+  return (
+    <Svg className={className}>
+      <path d="m14 6.5-5.5 5.5 5.5 5.5" />
+    </Svg>
+  );
+}
+
+export function IconChevronRight({ className }: IconProps) {
+  return (
+    <Svg className={className}>
+      <path d="m10 6.5 5.5 5.5L10 17.5" />
+    </Svg>
   );
 }
 
 export function IconChevronDown({ className }: IconProps) {
   return (
-    <svg viewBox="0 0 24 24" fill="none" className={className}>
-      <path d="m6 9 6 6 6-6" stroke="currentColor" strokeWidth={base} strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
+    <Svg className={className}>
+      <path d="m6.5 9.5 5.5 5.5 5.5-5.5" />
+    </Svg>
   );
 }
 
-export function IconPin({ className }: IconProps) {
+export function IconSliders({ className }: IconProps) {
   return (
-    <svg viewBox="0 0 24 24" fill="none" className={className}>
-      <path
-        d="M12 21s7-6.1 7-11.5A7 7 0 0 0 5 9.5C5 14.9 12 21 12 21Z"
-        stroke="currentColor"
-        strokeWidth={base}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <circle cx="12" cy="9.5" r="2.3" stroke="currentColor" strokeWidth={base} />
-    </svg>
+    <Svg className={className}>
+      <path d="M5 8h9M17.5 8H19M5 16h1.5M10 16h9" />
+      <circle cx="15.8" cy="8" r="2.1" />
+      <circle cx="8.2" cy="16" r="2.1" />
+    </Svg>
   );
 }
 
-export function IconClipboard({ className }: IconProps) {
+export function IconSplit({ className }: IconProps) {
   return (
-    <svg viewBox="0 0 24 24" fill="none" className={className}>
-      <rect x="6" y="4.5" width="12" height="16" rx="2" stroke="currentColor" strokeWidth={base} />
-      <path d="M9 4.5V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v.5" stroke="currentColor" strokeWidth={base} strokeLinecap="round" />
-      <path d="M9 12h6M9 16h6" stroke="currentColor" strokeWidth={base} strokeLinecap="round" />
-    </svg>
+    <Svg className={className}>
+      <path d="M5 5.5h4.5v4.5H5zM14.5 14h4.5v4.5h-4.5z" />
+      <path d="M7.2 10v4a2.3 2.3 0 0 0 2.3 2.3h5" />
+    </Svg>
   );
 }
 
-export function IconBriefcase({ className }: IconProps) {
+export function IconCalendar({ className }: IconProps) {
   return (
-    <svg viewBox="0 0 24 24" fill="none" className={className}>
-      <rect x="3.5" y="7.5" width="17" height="11" rx="2" stroke="currentColor" strokeWidth={base} />
-      <path d="M8.5 7.5V6a2 2 0 0 1 2-2h3a2 2 0 0 1 2 2v1.5" stroke="currentColor" strokeWidth={base} strokeLinecap="round" />
-      <path d="M3.5 12.5h17" stroke="currentColor" strokeWidth={base} />
-    </svg>
+    <Svg className={className}>
+      <rect x="3.8" y="5.6" width="16.4" height="14.6" rx="2.4" />
+      <path d="M3.8 10h16.4M8.4 3.8v3.4M15.6 3.8v3.4" />
+    </Svg>
   );
 }
 
-export function IconCart({ className }: IconProps) {
+export function IconTarget({ className }: IconProps) {
   return (
-    <svg viewBox="0 0 24 24" fill="none" className={className}>
-      <path d="M3 4h2l2.4 12.2a2 2 0 0 0 2 1.6h7.2a2 2 0 0 0 2-1.6L20 8H6" stroke="currentColor" strokeWidth={base} strokeLinecap="round" strokeLinejoin="round" />
-      <circle cx="10" cy="20.5" r="1.3" fill="currentColor" />
-      <circle cx="17" cy="20.5" r="1.3" fill="currentColor" />
-    </svg>
-  );
-}
-
-export function IconDots({ className }: IconProps) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" className={className}>
-      <circle cx="5" cy="12" r="1.6" fill="currentColor" />
-      <circle cx="12" cy="12" r="1.6" fill="currentColor" />
-      <circle cx="19" cy="12" r="1.6" fill="currentColor" />
-    </svg>
+    <Svg className={className}>
+      <circle cx="12" cy="12" r="8" />
+      <circle cx="12" cy="12" r="3.4" />
+    </Svg>
   );
 }

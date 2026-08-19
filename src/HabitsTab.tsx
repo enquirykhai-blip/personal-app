@@ -1,9 +1,12 @@
 import { useState } from "react";
+import { cx } from "./cx";
 import { useLocalStorage } from "./useLocalStorage";
 import type { Habit } from "./types";
 import { currentStreak, lastNDays, todayISO } from "./dateUtils";
 import { atRiskOfMissingTwice } from "./statsUtils";
 import MonthHeatmap from "./MonthHeatmap";
+import { IconCalendar, IconChevronDown, IconPencil, IconPlus, IconSliders, IconTrash } from "./icons";
+import { Button, Card, EmptyState, IconButton, TextField } from "./ui";
 
 interface Draft {
   name: string;
@@ -16,9 +19,11 @@ const EMPTY_DRAFT: Draft = { name: "", cue: "", identity: "" };
 export default function HabitsTab() {
   const [habits, setHabits] = useLocalStorage<Habit[]>("habits", []);
   const [draft, setDraft] = useState<Draft>(EMPTY_DRAFT);
+  const [showOptions, setShowOptions] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editDraft, setEditDraft] = useState<Draft>(EMPTY_DRAFT);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+
   const days = lastNDays(7);
   const today = todayISO();
 
@@ -26,15 +31,17 @@ export default function HabitsTab() {
     e.preventDefault();
     const trimmed = draft.name.trim();
     if (!trimmed) return;
-    const habit: Habit = {
-      id: crypto.randomUUID(),
-      name: trimmed,
-      cue: draft.cue.trim() || undefined,
-      identity: draft.identity.trim() || undefined,
-      createdAt: new Date().toISOString(),
-      completions: [],
-    };
-    setHabits((prev) => [...prev, habit]);
+    setHabits((prev) => [
+      ...prev,
+      {
+        id: crypto.randomUUID(),
+        name: trimmed,
+        cue: draft.cue.trim() || undefined,
+        identity: draft.identity.trim() || undefined,
+        createdAt: new Date().toISOString(),
+        completions: [],
+      },
+    ]);
     setDraft(EMPTY_DRAFT);
   }
 
@@ -66,190 +73,203 @@ export default function HabitsTab() {
     setHabits((prev) =>
       prev.map((h) =>
         h.id === id
-          ? { ...h, name: trimmed, cue: editDraft.cue.trim() || undefined, identity: editDraft.identity.trim() || undefined }
+          ? {
+              ...h,
+              name: trimmed,
+              cue: editDraft.cue.trim() || undefined,
+              identity: editDraft.identity.trim() || undefined,
+            }
           : h,
       ),
     );
     setEditingId(null);
   }
 
+  const doneToday = habits.filter((h) => h.completions.includes(today)).length;
+
   return (
     <div className="mx-auto max-w-2xl">
-      <h1 className="mb-5 text-2xl font-black text-fg">Tabiat</h1>
-
-      <form onSubmit={addHabit} className="mb-6 flex flex-col gap-2 rounded-3xl border border-line bg-panel p-4 shadow-card">
-        <input
-          value={draft.name}
-          onChange={(e) => setDraft({ ...draft, name: e.target.value })}
-          placeholder="Tabiat baharu (contoh: Baca 20 minit)"
-          className="rounded-lg border border-line bg-panel-2 px-3 py-2.5 text-sm text-fg placeholder:text-muted outline-none focus:border-accent"
-        />
-        <div className="flex flex-wrap gap-2">
-          <input
-            value={draft.cue}
-            onChange={(e) => setDraft({ ...draft, cue: e.target.value })}
-            placeholder="Selepas apa? (cth: Lepas gosok gigi pagi)"
-            className="flex-1 rounded-lg border border-line bg-panel-2 px-3 py-2 text-xs text-fg placeholder:text-muted outline-none focus:border-accent"
-          />
-          <input
-            value={draft.identity}
-            onChange={(e) => setDraft({ ...draft, identity: e.target.value })}
-            placeholder="Identiti (cth: Saya seorang pembaca)"
-            className="flex-1 rounded-lg border border-line bg-panel-2 px-3 py-2 text-xs text-fg placeholder:text-muted outline-none focus:border-accent"
-          />
-        </div>
-        <button
-          type="submit"
-          className="self-end rounded-full bg-dark px-5 py-2 text-sm font-bold uppercase tracking-wide text-dark-ink transition-transform duration-150 active:scale-95"
-        >
-          Tambah
-        </button>
-      </form>
-
-      {habits.length === 0 && (
-        <p className="rounded-xl border border-dashed border-line p-6 text-center text-sm text-muted">
-          Belum ada tabiat lagi. Tambah satu di atas.
+      <header className="mb-5">
+        <h1 className="text-display text-ink">Tabiat</h1>
+        <p className="mt-0.5 text-caption text-ink-3">
+          {habits.length === 0 ? "Belum ada tabiat" : `${doneToday}/${habits.length} siap hari ini`}
         </p>
-      )}
+      </header>
 
-      <ul className="flex flex-col gap-3">
-        {habits.map((habit) => {
-          const streak = currentStreak(habit.completions);
-          const atRisk = atRiskOfMissingTwice(habit);
-          return (
-            <li
-              key={habit.id}
-              className={`animate-fade-in-up rounded-2xl border p-4 shadow-card ${
-                atRisk ? "border-red-400/40 bg-red-400/5" : "border-line bg-panel"
-              }`}
-            >
-              <div className="mb-4 flex items-center justify-between">
-                {editingId === habit.id ? (
-                  <div className="flex w-full flex-col gap-2">
-                    <input
-                      value={editDraft.name}
-                      onChange={(e) => setEditDraft({ ...editDraft, name: e.target.value })}
-                      autoFocus
-                      className="rounded-lg border border-line bg-panel-2 px-2 py-1.5 text-sm text-fg outline-none focus:border-accent"
-                    />
-                    <div className="flex flex-wrap gap-2">
-                      <input
+      <Card className="mb-5 p-3">
+        <form onSubmit={addHabit}>
+          <div className="flex gap-2">
+            <TextField
+              value={draft.name}
+              onChange={(e) => setDraft({ ...draft, name: e.target.value })}
+              placeholder="Tabiat baharu, cth: Baca 20 minit"
+              aria-label="Nama tabiat"
+            />
+            <Button type="submit" disabled={!draft.name.trim()} className="px-4">
+              <IconPlus className="h-5 w-5" />
+              <span className="sr-only">Tambah tabiat</span>
+            </Button>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setShowOptions((v) => !v)}
+            aria-expanded={showOptions}
+            className="mt-2 inline-flex items-center gap-1.5 rounded-full px-2 py-1.5 text-caption font-semibold text-ink-3 transition-colors hover:text-ink"
+          >
+            <IconSliders className="h-4 w-4" />
+            Pemicu &amp; identiti
+            <IconChevronDown className={cx("h-3.5 w-3.5 transition-transform", showOptions && "rotate-180")} />
+          </button>
+
+          {showOptions && (
+            <div className="mt-1 grid animate-rise gap-2">
+              <TextField
+                value={draft.cue}
+                onChange={(e) => setDraft({ ...draft, cue: e.target.value })}
+                placeholder="Selepas apa? cth: Lepas gosok gigi pagi"
+                aria-label="Pemicu"
+                className="h-10 text-label"
+              />
+              <TextField
+                value={draft.identity}
+                onChange={(e) => setDraft({ ...draft, identity: e.target.value })}
+                placeholder="Identiti, cth: Saya seorang pembaca"
+                aria-label="Identiti"
+                className="h-10 text-label"
+              />
+            </div>
+          )}
+        </form>
+      </Card>
+
+      {habits.length === 0 ? (
+        <EmptyState
+          icon="🔁"
+          title="Mulakan satu tabiat kecil"
+          hint="Kaitkan dengan sesuatu yang awak dah buat setiap hari — lagi mudah untuk melekat."
+        />
+      ) : (
+        <ul className="flex flex-col gap-3">
+          {habits.map((habit) => {
+            const streak = currentStreak(habit.completions);
+            const atRisk = atRiskOfMissingTwice(habit);
+            const isEditing = editingId === habit.id;
+            const isExpanded = expandedId === habit.id;
+
+            return (
+              <li key={habit.id}>
+                <Card className={cx("animate-rise p-3", atRisk && "border-danger/30")}>
+                  {isEditing ? (
+                    <div className="flex flex-col gap-2">
+                      <TextField
+                        value={editDraft.name}
+                        onChange={(e) => setEditDraft({ ...editDraft, name: e.target.value })}
+                        aria-label="Nama tabiat"
+                        autoFocus
+                      />
+                      <TextField
                         value={editDraft.cue}
                         onChange={(e) => setEditDraft({ ...editDraft, cue: e.target.value })}
-                        placeholder="Selepas apa?"
-                        className="flex-1 rounded-lg border border-line bg-panel-2 px-2 py-1.5 text-xs text-fg outline-none focus:border-accent"
+                        placeholder="Pemicu"
+                        aria-label="Pemicu"
+                        className="h-10 text-label"
                       />
-                      <input
+                      <TextField
                         value={editDraft.identity}
                         onChange={(e) => setEditDraft({ ...editDraft, identity: e.target.value })}
                         placeholder="Identiti"
-                        className="flex-1 rounded-lg border border-line bg-panel-2 px-2 py-1.5 text-xs text-fg outline-none focus:border-accent"
+                        aria-label="Identiti"
+                        className="h-10 text-label"
                       />
-                    </div>
-                    <div className="flex justify-end gap-2">
-                      <button
-                        onClick={() => setEditingId(null)}
-                        className="text-xs font-bold text-muted hover:text-fg"
-                      >
-                        Batal
-                      </button>
-                      <button
-                        onClick={() => saveEdit(habit.id)}
-                        className="rounded-full bg-dark px-3 py-1.5 text-xs font-bold uppercase text-dark-ink"
-                      >
-                        Simpan
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <>
-                    <div className="flex items-center gap-3">
-                      <div className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-violet-50 text-sm font-black text-violet-600">
-                        {habit.name.slice(0, 1).toUpperCase()}
+                      <div className="flex justify-end gap-2">
+                        <Button variant="ghost" size="sm" onClick={() => setEditingId(null)}>
+                          Batal
+                        </Button>
+                        <Button size="sm" onClick={() => saveEdit(habit.id)}>
+                          Simpan
+                        </Button>
                       </div>
-                      <div>
-                        <p className="font-bold text-fg">{habit.name}</p>
-                        {habit.identity && (
-                          <p className="mt-0.5 text-xs font-semibold text-accent">✦ {habit.identity}</p>
-                        )}
-                        {habit.cue && <p className="mt-0.5 text-xs text-muted">🔗 {habit.cue}</p>}
-                        <p className="mt-1 text-xs font-semibold text-muted">
-                          {streak > 0 ? (
-                            <span className="text-accent">🔥 {streak} hari berturut-turut</span>
-                          ) : (
-                            "Belum ada streak"
+                    </div>
+                  ) : (
+                    <>
+                      <div className="flex items-start gap-2">
+                        <div className="min-w-0 flex-1 pt-1">
+                          <p className="text-subtitle text-ink">{habit.name}</p>
+                          {habit.identity && (
+                            <p className="mt-0.5 text-caption font-semibold text-brand">✦ {habit.identity}</p>
                           )}
-                        </p>
-                        {atRisk && (
-                          <p className="mt-1 animate-shake text-xs font-bold text-red-600">
-                            ⚠️ Jangan miss 2 hari berturut-turut!
+                          {habit.cue && <p className="mt-0.5 text-caption text-ink-3">↳ {habit.cue}</p>}
+                          <p className="mt-1 text-caption text-ink-2">
+                            {streak > 0 ? `🔥 ${streak} hari berturut-turut` : "Belum bermula"}
                           </p>
-                        )}
+                          {atRisk && (
+                            <p className="mt-1 animate-nudge text-caption font-semibold text-danger">
+                              Jangan terlepas dua hari berturut-turut
+                            </p>
+                          )}
+                        </div>
+                        <div className="flex shrink-0">
+                          <IconButton
+                            label="Lihat heatmap bulanan"
+                            onClick={() => setExpandedId(isExpanded ? null : habit.id)}
+                            className={cx(isExpanded && "bg-brand-soft text-brand")}
+                          >
+                            <IconCalendar className="h-4 w-4" />
+                          </IconButton>
+                          <IconButton label="Edit tabiat" onClick={() => startEdit(habit)}>
+                            <IconPencil className="h-4 w-4" />
+                          </IconButton>
+                          <IconButton label="Padam tabiat" danger onClick={() => deleteHabit(habit.id)}>
+                            <IconTrash className="h-4 w-4" />
+                          </IconButton>
+                        </div>
                       </div>
-                    </div>
-                    <div className="flex gap-1">
-                      <button
-                        onClick={() => setExpandedId(expandedId === habit.id ? null : habit.id)}
-                        className={`grid h-6 w-6 place-items-center rounded-full transition-transform duration-150 hover:bg-panel-2 active:scale-90 ${
-                          expandedId === habit.id ? "text-accent" : "text-muted hover:text-fg"
-                        }`}
-                        aria-label="Lihat heatmap bulanan"
-                      >
-                        📅
-                      </button>
-                      <button
-                        onClick={() => startEdit(habit)}
-                        className="grid h-6 w-6 place-items-center rounded-full text-muted transition-transform duration-150 hover:bg-panel-2 hover:text-fg active:scale-90"
-                        aria-label="Edit"
-                      >
-                        ✎
-                      </button>
-                      <button
-                        onClick={() => deleteHabit(habit.id)}
-                        className="grid h-6 w-6 place-items-center rounded-full text-muted transition-transform duration-150 hover:bg-panel-2 hover:text-red-400 active:scale-90"
-                        aria-label="Padam"
-                      >
-                        ✕
-                      </button>
-                    </div>
-                  </>
-                )}
-              </div>
-              <div className="flex justify-between gap-1">
-                {days.map((day) => {
-                  const done = habit.completions.includes(day);
-                  const label = new Date(day + "T00:00:00").toLocaleDateString("ms-MY", { weekday: "narrow" });
-                  return (
-                    <button
-                      key={day}
-                      onClick={() => toggleDay(habit.id, day)}
-                      title={day}
-                      className={`flex h-10 w-10 flex-col items-center justify-center rounded-lg text-xs font-bold transition-all duration-150 active:scale-90 ${
-                        done
-                          ? "bg-accent text-ink"
-                          : "border border-line bg-panel-2 text-muted hover:border-accent/50 hover:text-fg"
-                      } ${day === today ? "ring-2 ring-accent ring-offset-2 ring-offset-panel" : ""}`}
-                    >
-                      <span className="leading-none">{label}</span>
-                      <span key={done ? "on" : "off"} className={`leading-none ${done ? "animate-pop" : ""}`}>
-                        {done ? "✓" : ""}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-              {expandedId === habit.id && (
-                <div className="mt-3 animate-fade-in-up">
-                  <MonthHeatmap
-                    todayISO={today}
-                    getIntensity={(dateISO) => (habit.completions.includes(dateISO) ? 1 : 0)}
-                  />
-                </div>
-              )}
-            </li>
-          );
-        })}
-      </ul>
+
+                      <div className="mt-3 grid grid-cols-7 gap-1.5">
+                        {days.map((day) => {
+                          const done = habit.completions.includes(day);
+                          const isToday = day === today;
+                          const d = new Date(day + "T00:00:00");
+                          const wd = d.toLocaleDateString("ms-MY", { weekday: "narrow" });
+                          return (
+                            <button
+                              key={day}
+                              onClick={() => toggleDay(habit.id, day)}
+                              aria-pressed={done}
+                              aria-label={`${habit.name} pada ${d.toLocaleDateString("ms-MY", { day: "numeric", month: "long" })}`}
+                              className={cx(
+                                "flex h-12 flex-col items-center justify-center gap-0.5 rounded-field border text-caption font-semibold",
+                                "transition-[background-color,border-color,transform] duration-150 active:scale-90",
+                                done
+                                  ? "border-brand bg-brand text-white"
+                                  : "border-border bg-surface-2 text-ink-3 hover:border-brand-vivid",
+                                isToday && !done && "border-brand-vivid ring-2 ring-brand/15",
+                              )}
+                            >
+                              <span className="leading-none opacity-80">{wd}</span>
+                              <span className="text-[0.8125rem] leading-none tabular-nums">{d.getDate()}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+
+                      {isExpanded && (
+                        <div className="mt-3 animate-rise">
+                          <MonthHeatmap
+                            todayISO={today}
+                            getIntensity={(iso) => (habit.completions.includes(iso) ? 1 : 0)}
+                          />
+                        </div>
+                      )}
+                    </>
+                  )}
+                </Card>
+              </li>
+            );
+          })}
+        </ul>
+      )}
     </div>
   );
 }

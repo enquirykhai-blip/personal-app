@@ -1,31 +1,64 @@
-import { useMemo, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
+import { cx } from "./cx";
 import { useLocalStorage } from "./useLocalStorage";
 import type { Subtask, Task, TaskCategory, TaskPriority } from "./types";
 import { isOverdue, sortTasks, subtaskProgress } from "./statsUtils";
+import { todayISO } from "./dateUtils";
 import { generateSubtasks } from "./ai";
+import {
+  IconChevronDown,
+  IconPencil,
+  IconPlus,
+  IconSearch,
+  IconSliders,
+  IconSparkles,
+  IconSplit,
+  IconTrash,
+  IconX,
+} from "./icons";
+import { Button, Card, Checkbox, EmptyState, IconButton, SelectField, TextField } from "./ui";
 
-const CATEGORIES: { value: TaskCategory; label: string; color: string }[] = [
-  { value: "personal", label: "Peribadi", color: "bg-accent/15 text-accent" },
-  { value: "work", label: "Kerja", color: "bg-sky-400/15 text-sky-700" },
-  { value: "errand", label: "Urusan", color: "bg-amber-400/15 text-amber-700" },
-  { value: "other", label: "Lain-lain", color: "bg-zinc-400/15 text-zinc-600" },
+const CATEGORIES: { value: TaskCategory; label: string }[] = [
+  { value: "personal", label: "Peribadi" },
+  { value: "work", label: "Kerja" },
+  { value: "errand", label: "Urusan" },
+  { value: "other", label: "Lain-lain" },
 ];
 
-const PRIORITIES: { value: TaskPriority; label: string; color: string }[] = [
-  { value: "high", label: "Tinggi", color: "bg-red-400/15 text-red-600" },
-  { value: "medium", label: "Sederhana", color: "bg-amber-400/15 text-amber-700" },
-  { value: "low", label: "Rendah", color: "bg-zinc-400/15 text-zinc-600" },
+const PRIORITIES: { value: TaskPriority; label: string; dot: string }[] = [
+  { value: "high", label: "Tinggi", dot: "bg-danger" },
+  { value: "medium", label: "Sederhana", dot: "bg-warn" },
+  { value: "low", label: "Rendah", dot: "bg-ink-3" },
 ];
 
-function categoryMeta(category: TaskCategory) {
-  return CATEGORIES.find((c) => c.value === category) ?? CATEGORIES[3];
+function categoryLabel(c: TaskCategory) {
+  return CATEGORIES.find((x) => x.value === c)?.label ?? "Lain-lain";
 }
 
-function priorityMeta(priority: TaskPriority | undefined) {
-  return PRIORITIES.find((p) => p.value === priority) ?? PRIORITIES[1];
+function priorityMeta(p: TaskPriority | undefined) {
+  return PRIORITIES.find((x) => x.value === p) ?? PRIORITIES[1];
 }
 
-type Filter = "all" | "active" | "done";
+/** Human-friendly due date: relative when near, short date otherwise. */
+function dueLabel(iso: string): string {
+  const today = new Date(todayISO() + "T00:00:00").getTime();
+  const due = new Date(iso + "T00:00:00").getTime();
+  const days = Math.round((due - today) / 86400000);
+  if (days === 0) return "Hari ini";
+  if (days === 1) return "Esok";
+  if (days === -1) return "Semalam";
+  if (days > 1 && days < 7) return `${days} hari lagi`;
+  if (days < -1) return `Lewat ${Math.abs(days)} hari`;
+  return new Date(iso + "T00:00:00").toLocaleDateString("ms-MY", { day: "numeric", month: "short" });
+}
+
+type Filter = "active" | "done" | "all";
+
+const FILTERS: { value: Filter; label: string }[] = [
+  { value: "active", label: "Belum siap" },
+  { value: "done", label: "Siap" },
+  { value: "all", label: "Semua" },
+];
 
 interface EditDraft {
   text: string;
@@ -34,37 +67,47 @@ interface EditDraft {
   dueDate: string;
 }
 
-export default function TodoTab() {
+export default function TodoTab({ expandTaskId }: { expandTaskId?: string | null }) {
   const [tasks, setTasks] = useLocalStorage<Task[]>("tasks", []);
+  const [apiKey, setApiKey] = useLocalStorage("gemini_api_key", "");
+
   const [text, setText] = useState("");
   const [category, setCategory] = useState<TaskCategory>("personal");
   const [priority, setPriority] = useState<TaskPriority>("medium");
   const [dueDate, setDueDate] = useState("");
-  const [filter, setFilter] = useState<Filter>("all");
+  const [showOptions, setShowOptions] = useState(false);
+
+  const [search, setSearch] = useState("");
+  const [filter, setFilter] = useState<Filter>("active");
+
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editDraft, setEditDraft] = useState<EditDraft | null>(null);
-  const [expandedId, setExpandedId] = useState<string | null>(null);
+  /* Arriving from the Today screen's "Pecahkan" opens that task's steps. App
+     remounts this tab on navigation, so seeding state here is enough — no effect. */
+  const [expandedId, setExpandedId] = useState<string | null>(expandTaskId ?? null);
   const [subtaskDraft, setSubtaskDraft] = useState("");
-  const [apiKey, setApiKey] = useLocalStorage("gemini_api_key", "");
+
   const [apiKeyDraft, setApiKeyDraft] = useState("");
   const [showKeyForm, setShowKeyForm] = useState(false);
   const [aiLoadingId, setAiLoadingId] = useState<string | null>(null);
-  const [aiError, setAiError] = useState<string | null>(null);
+  const [aiError, setAiError] = useState<{ id: string; message: string } | null>(null);
 
   function addTask(e: React.FormEvent) {
     e.preventDefault();
     const trimmed = text.trim();
     if (!trimmed) return;
-    const task: Task = {
-      id: crypto.randomUUID(),
-      text: trimmed,
-      done: false,
-      category,
-      priority,
-      dueDate: dueDate || null,
-      createdAt: new Date().toISOString(),
-    };
-    setTasks((prev) => [task, ...prev]);
+    setTasks((prev) => [
+      {
+        id: crypto.randomUUID(),
+        text: trimmed,
+        done: false,
+        category,
+        priority,
+        dueDate: dueDate || null,
+        createdAt: new Date().toISOString(),
+      },
+      ...prev,
+    ]);
     setText("");
     setDueDate("");
     setPriority("medium");
@@ -85,6 +128,8 @@ export default function TodoTab() {
   function toggleSubtaskPanel(id: string) {
     setExpandedId(expandedId === id ? null : id);
     setSubtaskDraft("");
+    setAiError(null);
+    setShowKeyForm(false);
   }
 
   function addSubtask(taskId: string) {
@@ -109,7 +154,9 @@ export default function TodoTab() {
 
   function deleteSubtask(taskId: string, subtaskId: string) {
     setTasks((prev) =>
-      prev.map((t) => (t.id === taskId ? { ...t, subtasks: (t.subtasks ?? []).filter((s) => s.id !== subtaskId) } : t)),
+      prev.map((t) =>
+        t.id === taskId ? { ...t, subtasks: (t.subtasks ?? []).filter((s) => s.id !== subtaskId) } : t,
+      ),
     );
   }
 
@@ -131,12 +178,12 @@ export default function TodoTab() {
     setAiLoadingId(task.id);
     try {
       const generated = await generateSubtasks(apiKey, task.text);
-      const newSubtasks: Subtask[] = generated.map((text) => ({ id: crypto.randomUUID(), text, done: false }));
+      const newSubtasks: Subtask[] = generated.map((t) => ({ id: crypto.randomUUID(), text: t, done: false }));
       setTasks((prev) =>
         prev.map((t) => (t.id === task.id ? { ...t, subtasks: [...(t.subtasks ?? []), ...newSubtasks] } : t)),
       );
     } catch (err) {
-      setAiError(err instanceof Error ? err.message : "Ralat tidak diketahui.");
+      setAiError({ id: task.id, message: err instanceof Error ? err.message : "Ralat tidak diketahui." });
     } finally {
       setAiLoadingId(null);
     }
@@ -152,11 +199,6 @@ export default function TodoTab() {
     });
   }
 
-  function cancelEdit() {
-    setEditingId(null);
-    setEditDraft(null);
-  }
-
   function saveEdit(id: string) {
     if (!editDraft) return;
     const trimmed = editDraft.text.trim();
@@ -164,328 +206,438 @@ export default function TodoTab() {
     setTasks((prev) =>
       prev.map((t) =>
         t.id === id
-          ? { ...t, text: trimmed, category: editDraft.category, priority: editDraft.priority, dueDate: editDraft.dueDate || null }
+          ? {
+              ...t,
+              text: trimmed,
+              category: editDraft.category,
+              priority: editDraft.priority,
+              dueDate: editDraft.dueDate || null,
+            }
           : t,
       ),
     );
-    cancelEdit();
+    setEditingId(null);
+    setEditDraft(null);
   }
 
   const visibleTasks = useMemo(() => {
-    const filtered =
+    const byState =
       filter === "active" ? tasks.filter((t) => !t.done) : filter === "done" ? tasks.filter((t) => t.done) : tasks;
-    return sortTasks(filtered);
-  }, [tasks, filter]);
+    const q = search.trim().toLowerCase();
+    const bySearch = q ? byState.filter((t) => t.text.toLowerCase().includes(q)) : byState;
+    return sortTasks(bySearch);
+  }, [tasks, filter, search]);
 
   const remaining = tasks.filter((t) => !t.done).length;
 
   return (
     <div className="mx-auto max-w-2xl">
-      <h1 className="mb-5 text-2xl font-black text-fg">Tugasan</h1>
+      <header className="mb-5">
+        <h1 className="text-display text-ink">Tugasan</h1>
+        <p className="mt-0.5 text-caption text-ink-3">
+          {remaining > 0 ? `${remaining} belum siap` : "Semua selesai"}
+        </p>
+      </header>
 
-      <form onSubmit={addTask} className="mb-6 flex flex-col gap-3 rounded-3xl border border-line bg-panel p-4 shadow-card">
-        <input
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          placeholder="Apa yang perlu dibuat?"
-          className="rounded-lg border border-line bg-panel-2 px-3 py-2.5 text-sm text-fg placeholder:text-muted outline-none focus:border-accent"
-        />
-        <div className="flex flex-wrap items-center gap-2">
-          <select
-            value={category}
-            onChange={(e) => setCategory(e.target.value as TaskCategory)}
-            className="rounded-lg border border-line bg-panel-2 px-2 py-2 text-sm text-fg outline-none focus:border-accent"
-          >
-            {CATEGORIES.map((c) => (
-              <option key={c.value} value={c.value}>
-                {c.label}
-              </option>
-            ))}
-          </select>
-          <select
-            value={priority}
-            onChange={(e) => setPriority(e.target.value as TaskPriority)}
-            className="rounded-lg border border-line bg-panel-2 px-2 py-2 text-sm text-fg outline-none focus:border-accent"
-          >
-            {PRIORITIES.map((p) => (
-              <option key={p.value} value={p.value}>
-                Keutamaan: {p.label}
-              </option>
-            ))}
-          </select>
-          <input
-            type="date"
-            value={dueDate}
-            onChange={(e) => setDueDate(e.target.value)}
-            className="rounded-lg border border-line bg-panel-2 px-2 py-2 text-sm text-fg outline-none focus:border-accent [color-scheme:light]"
-          />
+      {/* Quick capture — one field, options tucked away to keep friction low */}
+      <Card className="mb-5 p-3">
+        <form onSubmit={addTask}>
+          <div className="flex gap-2">
+            <TextField
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              placeholder="Apa yang perlu dibuat?"
+              aria-label="Tugasan baharu"
+            />
+            <Button type="submit" disabled={!text.trim()} className="px-4">
+              <IconPlus className="h-5 w-5" />
+              <span className="sr-only">Tambah tugasan</span>
+            </Button>
+          </div>
+
           <button
-            type="submit"
-            className="ml-auto rounded-full bg-dark px-5 py-2 text-sm font-bold uppercase tracking-wide text-dark-ink transition-transform duration-150 active:scale-95"
+            type="button"
+            onClick={() => setShowOptions((v) => !v)}
+            aria-expanded={showOptions}
+            className="mt-2 inline-flex items-center gap-1.5 rounded-full px-2 py-1.5 text-caption font-semibold text-ink-3 transition-colors hover:text-ink"
           >
-            Tambah
+            <IconSliders className="h-4 w-4" />
+            Pilihan
+            <IconChevronDown className={cx("h-3.5 w-3.5 transition-transform", showOptions && "rotate-180")} />
           </button>
-        </div>
-      </form>
 
-      <div className="mb-4 flex items-center justify-between border-b border-line">
-        <div className="flex gap-6 text-sm">
-          {(["all", "active", "done"] as Filter[]).map((f) => (
+          {showOptions && (
+            <div className="mt-1 grid animate-rise grid-cols-2 gap-2 sm:grid-cols-3">
+              <SelectField
+                value={category}
+                onChange={(e) => setCategory(e.target.value as TaskCategory)}
+                aria-label="Kategori"
+              >
+                {CATEGORIES.map((c) => (
+                  <option key={c.value} value={c.value}>
+                    {c.label}
+                  </option>
+                ))}
+              </SelectField>
+              <SelectField
+                value={priority}
+                onChange={(e) => setPriority(e.target.value as TaskPriority)}
+                aria-label="Keutamaan"
+              >
+                {PRIORITIES.map((p) => (
+                  <option key={p.value} value={p.value}>
+                    {p.label}
+                  </option>
+                ))}
+              </SelectField>
+              <TextField
+                type="date"
+                value={dueDate}
+                onChange={(e) => setDueDate(e.target.value)}
+                aria-label="Tarikh akhir"
+                className="col-span-2 text-label sm:col-span-1"
+              />
+            </div>
+          )}
+        </form>
+      </Card>
+
+      {/* Search + filter */}
+      <div className="mb-4 flex flex-col gap-3">
+        <div className="relative">
+          <IconSearch className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-3" />
+          <TextField
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Cari tugasan"
+            aria-label="Cari tugasan"
+            className="pl-10"
+          />
+          {search && (
             <button
-              key={f}
-              onClick={() => setFilter(f)}
-              className={`relative pb-3 font-bold ${
-                filter === f ? "text-fg" : "text-muted hover:text-fg"
-              }`}
+              onClick={() => setSearch("")}
+              aria-label="Kosongkan carian"
+              className="absolute right-2 top-1/2 grid h-8 w-8 -translate-y-1/2 place-items-center rounded-full text-ink-3 hover:bg-surface-2 hover:text-ink"
             >
-              {f === "all" ? "Semua" : f === "active" ? "Belum siap" : "Siap"}
-              {filter === f && <span className="absolute inset-x-0 -bottom-px h-0.5 bg-accent" />}
+              <IconX className="h-4 w-4" />
+            </button>
+          )}
+        </div>
+
+        <div role="tablist" aria-label="Tapis tugasan" className="flex gap-1 rounded-full bg-surface-3 p-1">
+          {FILTERS.map((f) => (
+            <button
+              key={f.value}
+              role="tab"
+              aria-selected={filter === f.value}
+              onClick={() => setFilter(f.value)}
+              className={cx(
+                "flex-1 rounded-full py-2 text-caption font-semibold transition-colors duration-150",
+                filter === f.value ? "bg-surface text-ink shadow-e1" : "text-ink-2 hover:text-ink",
+              )}
+            >
+              {f.label}
             </button>
           ))}
         </div>
-        <span className="pb-3 text-xs text-muted">{remaining} tugasan tinggal</span>
       </div>
 
-      <ul className="flex flex-col gap-2">
-        {visibleTasks.length === 0 && (
-          <li className="rounded-xl border border-dashed border-line p-6 text-center text-sm text-muted">
-            Tiada tugasan di sini.
-          </li>
-        )}
-        {visibleTasks.map((task) => {
-          const meta = categoryMeta(task.category);
-          const pMeta = priorityMeta(task.priority);
-          const overdue = isOverdue(task);
+      {/* List */}
+      {visibleTasks.length === 0 ? (
+        <EmptyState
+          icon={search ? "🔍" : filter === "done" ? "📭" : "✅"}
+          title={search ? "Tiada padanan" : filter === "done" ? "Belum ada yang siap" : "Tiada tugasan tertunggak"}
+          hint={search ? `Tiada tugasan sepadan dengan "${search}".` : undefined}
+        />
+      ) : (
+        <ul className="flex flex-col gap-2">
+          {visibleTasks.map((task) => {
+            const pMeta = priorityMeta(task.priority);
+            const overdue = isOverdue(task);
+            const progress = subtaskProgress(task);
+            const isExpanded = expandedId === task.id;
+            const isEditing = editingId === task.id;
 
-          if (editingId === task.id && editDraft) {
+            /* Built as a list so a separator can never dangle at the end of a wrapped line. */
+            const metaParts = [
+              <span key="p" className="inline-flex items-center gap-1.5">
+                <span className={cx("h-1.5 w-1.5 rounded-full", pMeta.dot)} aria-hidden="true" />
+                {pMeta.label}
+              </span>,
+              <span key="c">{categoryLabel(task.category)}</span>,
+              task.dueDate ? (
+                <span key="d" className={cx(overdue && !task.done && "font-semibold text-danger")}>
+                  {dueLabel(task.dueDate)}
+                </span>
+              ) : null,
+            ].filter(Boolean);
+
+            if (isEditing && editDraft) {
+              return (
+                <li key={task.id}>
+                  <Card className="animate-rise border-brand p-3 shadow-e2">
+                    <TextField
+                      value={editDraft.text}
+                      onChange={(e) => setEditDraft({ ...editDraft, text: e.target.value })}
+                      aria-label="Teks tugasan"
+                      autoFocus
+                    />
+                    <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3">
+                      <SelectField
+                        value={editDraft.category}
+                        onChange={(e) => setEditDraft({ ...editDraft, category: e.target.value as TaskCategory })}
+                        aria-label="Kategori"
+                      >
+                        {CATEGORIES.map((c) => (
+                          <option key={c.value} value={c.value}>
+                            {c.label}
+                          </option>
+                        ))}
+                      </SelectField>
+                      <SelectField
+                        value={editDraft.priority}
+                        onChange={(e) => setEditDraft({ ...editDraft, priority: e.target.value as TaskPriority })}
+                        aria-label="Keutamaan"
+                      >
+                        {PRIORITIES.map((p) => (
+                          <option key={p.value} value={p.value}>
+                            {p.label}
+                          </option>
+                        ))}
+                      </SelectField>
+                      <TextField
+                        type="date"
+                        value={editDraft.dueDate}
+                        onChange={(e) => setEditDraft({ ...editDraft, dueDate: e.target.value })}
+                        aria-label="Tarikh akhir"
+                        className="col-span-2 text-label sm:col-span-1"
+                      />
+                    </div>
+                    <div className="mt-3 flex justify-end gap-2">
+                      <Button variant="ghost" size="sm" onClick={() => setEditingId(null)}>
+                        Batal
+                      </Button>
+                      <Button size="sm" onClick={() => saveEdit(task.id)}>
+                        Simpan
+                      </Button>
+                    </div>
+                  </Card>
+                </li>
+              );
+            }
+
             return (
-              <li key={task.id} className="flex flex-col gap-2 rounded-2xl border border-accent bg-panel p-3.5 shadow-card-lg">
-                <input
-                  value={editDraft.text}
-                  onChange={(e) => setEditDraft({ ...editDraft, text: e.target.value })}
-                  className="rounded-lg border border-line bg-panel-2 px-3 py-2 text-sm text-fg outline-none focus:border-accent"
-                  autoFocus
-                />
-                <div className="flex flex-wrap items-center gap-2">
-                  <select
-                    value={editDraft.category}
-                    onChange={(e) => setEditDraft({ ...editDraft, category: e.target.value as TaskCategory })}
-                    className="rounded-lg border border-line bg-panel-2 px-2 py-1.5 text-xs text-fg outline-none focus:border-accent"
-                  >
-                    {CATEGORIES.map((c) => (
-                      <option key={c.value} value={c.value}>
-                        {c.label}
-                      </option>
-                    ))}
-                  </select>
-                  <select
-                    value={editDraft.priority}
-                    onChange={(e) => setEditDraft({ ...editDraft, priority: e.target.value as TaskPriority })}
-                    className="rounded-lg border border-line bg-panel-2 px-2 py-1.5 text-xs text-fg outline-none focus:border-accent"
-                  >
-                    {PRIORITIES.map((p) => (
-                      <option key={p.value} value={p.value}>
-                        {p.label}
-                      </option>
-                    ))}
-                  </select>
-                  <input
-                    type="date"
-                    value={editDraft.dueDate}
-                    onChange={(e) => setEditDraft({ ...editDraft, dueDate: e.target.value })}
-                    className="rounded-lg border border-line bg-panel-2 px-2 py-1.5 text-xs text-fg outline-none focus:border-accent [color-scheme:light]"
-                  />
-                  <div className="ml-auto flex gap-2">
-                    <button onClick={cancelEdit} className="rounded-lg px-3 py-1.5 text-xs font-bold text-muted hover:text-fg">
-                      Batal
-                    </button>
-                    <button
-                      onClick={() => saveEdit(task.id)}
-                      className="rounded-full bg-dark px-3 py-1.5 text-xs font-bold uppercase text-dark-ink"
-                    >
-                      Simpan
-                    </button>
-                  </div>
-                </div>
-              </li>
-            );
-          }
-
-          const progress = subtaskProgress(task);
-          const isExpanded = expandedId === task.id;
-
-          return (
-            <li
-              key={task.id}
-              className={`animate-fade-in-up rounded-2xl border p-3.5 shadow-card transition-colors duration-200 ${
-                overdue ? "border-red-400/40 bg-red-400/5" : "border-line bg-panel"
-              }`}
-            >
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={() => toggleTask(task.id)}
-                  className={`grid h-11 w-11 shrink-0 place-items-center rounded-full text-sm font-black transition-colors duration-200 ${
-                    task.done ? "bg-accent text-ink" : meta.color
-                  }`}
-                  aria-label={task.done ? "Tandakan belum siap" : "Tandakan siap"}
+              <li key={task.id}>
+                <Card
+                  className={cx(
+                    "animate-rise overflow-hidden transition-colors duration-200",
+                    overdue && !task.done && "border-danger/30",
+                  )}
                 >
-                  {task.done ? "✓" : task.text.slice(0, 1).toUpperCase()}
-                </button>
-                <div className="flex-1">
-                  <p className={`text-sm font-medium transition-colors duration-200 ${task.done ? "text-muted line-through" : "text-fg"}`}>
-                    {task.text}
-                  </p>
-                  <div className="mt-1.5 flex flex-wrap items-center gap-2">
-                    <span className={`rounded-full px-2 py-0.5 text-xs font-bold ${meta.color}`}>{meta.label}</span>
-                    <span className={`rounded-full px-2 py-0.5 text-xs font-bold ${pMeta.color}`}>{pMeta.label}</span>
-                    {task.dueDate && (
-                      <span className={`text-xs ${overdue ? "font-bold text-red-600" : "text-muted"}`}>
-                        {overdue ? "Tertunggak" : "Tarikh akhir"}: {task.dueDate}
-                      </span>
-                    )}
+                  <div className="flex items-center gap-1 p-2">
+                    <Checkbox
+                      checked={task.done}
+                      onChange={() => toggleTask(task.id)}
+                      label={task.done ? `Tandakan ${task.text} belum siap` : `Tandakan ${task.text} siap`}
+                    />
+
+                    {/* The whole row body toggles the steps panel — one large, obvious target. */}
                     <button
                       onClick={() => toggleSubtaskPanel(task.id)}
-                      className={`rounded-full px-2 py-0.5 text-xs font-bold transition-colors duration-150 ${
-                        isExpanded ? "bg-accent text-ink" : "bg-panel-2 text-muted hover:text-fg"
-                      }`}
+                      aria-expanded={isExpanded}
+                      aria-label={`Langkah untuk ${task.text}`}
+                      className="flex min-w-0 flex-1 items-center gap-2 rounded-field py-1 pr-1 text-left"
                     >
-                      🧩 {progress.total > 0 ? `${progress.done}/${progress.total}` : "Pecahkan"}
+                      <span className="min-w-0 flex-1">
+                        <span
+                          className={cx(
+                            "block text-label font-medium transition-colors duration-200",
+                            task.done ? "text-ink-3 line-through" : "text-ink",
+                          )}
+                        >
+                          {task.text}
+                        </span>
+                        <span className="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-caption text-ink-3">
+                          {metaParts.map((part, i) => (
+                            <Fragment key={i}>
+                              {i > 0 && <span aria-hidden="true">·</span>}
+                              {part}
+                            </Fragment>
+                          ))}
+                        </span>
+                      </span>
+
+                      <span
+                        className={cx(
+                          "inline-flex h-8 shrink-0 items-center gap-1 rounded-full px-2 text-caption font-semibold transition-colors",
+                          isExpanded || progress.total > 0 ? "bg-plum-soft text-plum" : "text-ink-3",
+                        )}
+                      >
+                        <IconSplit className="h-4 w-4" />
+                        {progress.total > 0 && (
+                          <span className="tabular-nums">
+                            {progress.done}/{progress.total}
+                          </span>
+                        )}
+                      </span>
                     </button>
                   </div>
-                </div>
-                <button
-                  onClick={() => startEdit(task)}
-                  className="grid h-6 w-6 shrink-0 place-items-center rounded-full text-muted transition-transform duration-150 hover:bg-panel-2 hover:text-fg active:scale-90"
-                  aria-label="Edit"
-                >
-                  ✎
-                </button>
-                <button
-                  onClick={() => deleteTask(task.id)}
-                  className="grid h-6 w-6 shrink-0 place-items-center rounded-full text-muted transition-transform duration-150 hover:bg-panel-2 hover:text-red-400 active:scale-90"
-                  aria-label="Padam"
-                >
-                  ✕
-                </button>
-              </div>
 
-              {isExpanded && (
-                <div className="mt-3 animate-fade-in-up border-t border-line pt-3">
-                  {progress.total > 0 && (
-                    <div className="mb-3 h-1.5 overflow-hidden rounded-full bg-panel-2">
+                  {isExpanded && progress.total > 0 && (
+                    <div className="h-1 bg-surface-3">
                       <div
-                        className="h-full rounded-full bg-accent transition-all duration-300"
+                        className="h-full bg-brand-vivid transition-[width] duration-500 ease-out"
                         style={{ width: `${(progress.done / progress.total) * 100}%` }}
+                        role="progressbar"
+                        aria-valuenow={progress.done}
+                        aria-valuemin={0}
+                        aria-valuemax={progress.total}
+                        aria-label="Kemajuan langkah"
                       />
                     </div>
                   )}
-                  <ul className="flex flex-col gap-1.5">
-                    {(task.subtasks ?? []).map((s) => (
-                      <li key={s.id} className="flex items-center gap-2">
-                        <button
-                          onClick={() => toggleSubtask(task.id, s.id)}
-                          aria-label={s.done ? "Tandakan langkah belum siap" : "Tandakan langkah siap"}
-                          className={`grid h-5 w-5 shrink-0 place-items-center rounded-full text-[10px] font-black transition-colors duration-150 ${
-                            s.done ? "bg-accent text-ink" : "border border-line bg-panel-2 text-transparent"
-                          }`}
-                        >
-                          ✓
-                        </button>
-                        <span className={`flex-1 text-sm ${s.done ? "text-muted line-through" : "text-fg"}`}>{s.text}</span>
-                        <button
-                          onClick={() => deleteSubtask(task.id, s.id)}
-                          className="grid h-5 w-5 shrink-0 place-items-center rounded-full text-muted hover:text-red-400"
-                          aria-label="Padam langkah"
-                        >
-                          ✕
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                  <form
-                    onSubmit={(e) => {
-                      e.preventDefault();
-                      addSubtask(task.id);
-                    }}
-                    className="mt-2 flex gap-2"
-                  >
-                    <input
-                      value={subtaskDraft}
-                      onChange={(e) => setSubtaskDraft(e.target.value)}
-                      placeholder="Tambah langkah kecil..."
-                      className="flex-1 rounded-lg border border-line bg-panel-2 px-2.5 py-1.5 text-sm text-fg placeholder:text-muted outline-none focus:border-accent"
-                    />
-                    <button
-                      type="submit"
-                      className="rounded-full bg-dark px-3 py-1.5 text-xs font-bold uppercase text-dark-ink transition-transform duration-150 active:scale-95"
-                    >
-                      +
-                    </button>
-                  </form>
 
-                  <div className="mt-2 flex items-center gap-2">
-                    <button
-                      onClick={() => handleGenerate(task)}
-                      disabled={aiLoadingId === task.id}
-                      className="flex items-center gap-1.5 rounded-full bg-violet-600 px-3 py-1.5 text-xs font-bold text-white transition-transform duration-150 active:scale-95 disabled:opacity-60"
-                    >
-                      {aiLoadingId === task.id ? "Menjana..." : "✨ Jana dengan AI"}
-                    </button>
-                    {apiKey && (
-                      <button
-                        onClick={() => setShowKeyForm((v) => !v)}
-                        className="text-xs font-semibold text-muted hover:text-fg"
+                  {isExpanded && (
+                    <div className="animate-rise border-t border-border bg-surface-2/50 p-3">
+                      {(task.subtasks ?? []).length > 0 && (
+                        <ul className="mb-1 flex flex-col">
+                          {(task.subtasks ?? []).map((s) => (
+                            <li key={s.id} className="flex items-center gap-1">
+                              <Checkbox
+                                size="sm"
+                                checked={s.done}
+                                onChange={() => toggleSubtask(task.id, s.id)}
+                                label={s.done ? `Tandakan ${s.text} belum siap` : `Tandakan ${s.text} siap`}
+                              />
+                              <span
+                                className={cx(
+                                  "flex-1 text-label",
+                                  s.done ? "text-ink-3 line-through" : "text-ink-2",
+                                )}
+                              >
+                                {s.text}
+                              </span>
+                              <IconButton
+                                label="Padam langkah"
+                                danger
+                                className="h-9 w-9"
+                                onClick={() => deleteSubtask(task.id, s.id)}
+                              >
+                                <IconX className="h-3.5 w-3.5" />
+                              </IconButton>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+
+                      <form
+                        onSubmit={(e) => {
+                          e.preventDefault();
+                          addSubtask(task.id);
+                        }}
+                        className="flex gap-2"
                       >
-                        Tukar API key
-                      </button>
-                    )}
-                  </div>
-
-                  {aiError && <p className="mt-2 text-xs font-semibold text-red-600">{aiError}</p>}
-
-                  {showKeyForm && (
-                    <form onSubmit={saveApiKey} className="mt-2 flex flex-col gap-2 rounded-xl border border-line bg-panel-2 p-3">
-                      <p className="text-xs text-muted">
-                        Masukkan API key Gemini anda (disimpan dalam browser ini sahaja, tidak dihantar ke mana-mana selain
-                        Google). Dapatkan percuma di{" "}
-                        <a
-                          href="https://aistudio.google.com/apikey"
-                          target="_blank"
-                          rel="noreferrer"
-                          className="font-bold text-accent underline"
-                        >
-                          aistudio.google.com/apikey
-                        </a>
-                        .
-                      </p>
-                      <div className="flex gap-2">
-                        <input
-                          type="password"
-                          value={apiKeyDraft}
-                          onChange={(e) => setApiKeyDraft(e.target.value)}
-                          placeholder="API key Gemini"
-                          className="flex-1 rounded-lg border border-line bg-panel px-2.5 py-1.5 text-sm text-fg placeholder:text-muted outline-none focus:border-accent"
+                        <TextField
+                          value={subtaskDraft}
+                          onChange={(e) => setSubtaskDraft(e.target.value)}
+                          placeholder="Langkah kecil…"
+                          aria-label="Langkah baharu"
+                          className="h-10 text-label"
                         />
-                        <button
-                          type="submit"
-                          className="rounded-full bg-dark px-3 py-1.5 text-xs font-bold uppercase text-dark-ink"
+                        <Button type="submit" size="sm" variant="secondary" disabled={!subtaskDraft.trim()}>
+                          <IconPlus className="h-4 w-4" />
+                          <span className="sr-only">Tambah langkah</span>
+                        </Button>
+                      </form>
+
+                      <div className="mt-2.5 flex flex-wrap items-center gap-2">
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          onClick={() => handleGenerate(task)}
+                          disabled={aiLoadingId === task.id}
+                          className="border-plum/25 bg-plum-soft text-plum hover:bg-plum-soft/70"
                         >
-                          Simpan
-                        </button>
+                          <IconSparkles className={cx("h-4 w-4", aiLoadingId === task.id && "animate-pulse")} />
+                          {aiLoadingId === task.id ? "Menjana…" : "Jana dengan AI"}
+                        </Button>
+                        {apiKey && (
+                          <button
+                            onClick={() => setShowKeyForm((v) => !v)}
+                            className="text-caption font-medium text-ink-3 underline-offset-2 hover:text-ink hover:underline"
+                          >
+                            Tukar API key
+                          </button>
+                        )}
                       </div>
-                    </form>
+
+                      {aiError?.id === task.id && (
+                        <p role="alert" className="mt-2 text-caption font-medium text-danger">
+                          {aiError.message}
+                        </p>
+                      )}
+
+                      <div className="mt-3 flex justify-end gap-1 border-t border-border pt-2">
+                        <Button variant="ghost" size="sm" onClick={() => startEdit(task)}>
+                          <IconPencil className="h-4 w-4" />
+                          Edit
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => deleteTask(task.id)}
+                          className="text-danger hover:bg-danger-soft hover:text-danger"
+                        >
+                          <IconTrash className="h-4 w-4" />
+                          Padam
+                        </Button>
+                      </div>
+
+                      {showKeyForm && (
+                        <form onSubmit={saveApiKey} className="mt-2.5 rounded-field border border-border bg-surface p-3">
+                          <p className="text-caption text-ink-2">
+                            API key Gemini disimpan dalam browser ini sahaja. Dapatkan percuma di{" "}
+                            <a
+                              href="https://aistudio.google.com/apikey"
+                              target="_blank"
+                              rel="noreferrer"
+                              className="font-semibold text-brand underline underline-offset-2"
+                            >
+                              aistudio.google.com/apikey
+                            </a>
+                            .
+                          </p>
+                          <div className="mt-2 flex gap-2">
+                            <TextField
+                              type="password"
+                              value={apiKeyDraft}
+                              onChange={(e) => setApiKeyDraft(e.target.value)}
+                              placeholder="API key"
+                              aria-label="API key Gemini"
+                              autoComplete="off"
+                              className="h-10 text-label"
+                            />
+                            <Button type="submit" size="sm" disabled={!apiKeyDraft.trim()}>
+                              Simpan
+                            </Button>
+                          </div>
+                        </form>
+                      )}
+                    </div>
                   )}
-                </div>
-              )}
-            </li>
-          );
-        })}
-      </ul>
+                </Card>
+              </li>
+            );
+          })}
+        </ul>
+      )}
 
       {tasks.some((t) => t.done) && (
-        <button onClick={clearDone} className="mt-4 text-sm font-semibold text-muted hover:text-red-400">
-          Buang semua yang siap
-        </button>
+        <div className="mt-5 flex justify-center">
+          <Button variant="ghost" size="sm" onClick={clearDone}>
+            Buang semua yang siap
+          </Button>
+        </div>
       )}
     </div>
   );

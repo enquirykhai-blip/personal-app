@@ -1,103 +1,112 @@
 import { useState } from "react";
+import { cx } from "./cx";
+import { IconChevronLeft, IconChevronRight } from "./icons";
+import { Card, IconButton } from "./ui";
 
-const WEEKDAY_LABELS = ["Ahd", "Isn", "Sel", "Rab", "Kha", "Jum", "Sab"];
+const WEEKDAYS = ["A", "I", "S", "R", "K", "J", "S"];
 
 function pad(n: number) {
   return String(n).padStart(2, "0");
 }
 
-function isoOf(year: number, monthIndex0: number, day: number) {
-  return `${year}-${pad(monthIndex0 + 1)}-${pad(day)}`;
+function isoOf(year: number, month0: number, day: number) {
+  return `${year}-${pad(month0 + 1)}-${pad(day)}`;
 }
 
-function bucketClass(intensity: number): string {
-  if (intensity <= 0) return "bg-panel-2";
-  if (intensity < 0.34) return "bg-accent/30";
-  if (intensity < 0.67) return "bg-accent/55";
-  if (intensity < 1) return "bg-accent/80";
-  return "bg-accent";
+/** Five buckets so partial days stay readable without a legend lookup. */
+function levelOf(intensity: number): 0 | 1 | 2 | 3 | 4 {
+  if (intensity <= 0) return 0;
+  if (intensity < 0.34) return 1;
+  if (intensity < 0.67) return 2;
+  if (intensity < 1) return 3;
+  return 4;
 }
 
-interface MonthHeatmapProps {
+const LEVEL_CLASS: Record<number, string> = {
+  0: "bg-surface-3",
+  1: "bg-brand-vivid/25",
+  2: "bg-brand-vivid/50",
+  3: "bg-brand-vivid/75",
+  4: "bg-brand-vivid",
+};
+
+export default function MonthHeatmap({
+  getIntensity,
+  todayISO,
+}: {
   getIntensity: (dateISO: string) => number;
   todayISO: string;
-}
-
-export default function MonthHeatmap({ getIntensity, todayISO }: MonthHeatmapProps) {
+}) {
   const now = new Date(todayISO + "T00:00:00");
   const [year, setYear] = useState(now.getFullYear());
-  const [monthIndex0, setMonthIndex0] = useState(now.getMonth());
+  const [month0, setMonth0] = useState(now.getMonth());
 
-  const firstDay = new Date(year, monthIndex0, 1);
-  const leadingBlanks = firstDay.getDay();
-  const daysCount = new Date(year, monthIndex0 + 1, 0).getDate();
-  const monthLabel = firstDay.toLocaleDateString("ms-MY", { month: "long", year: "numeric" });
+  const first = new Date(year, month0, 1);
+  const blanks = first.getDay();
+  const dayCount = new Date(year, month0 + 1, 0).getDate();
+  const monthLabel = first.toLocaleDateString("ms-MY", { month: "long", year: "numeric" });
 
-  function prevMonth() {
-    if (monthIndex0 === 0) {
-      setYear((y) => y - 1);
-      setMonthIndex0(11);
-    } else {
-      setMonthIndex0((m) => m - 1);
-    }
+  const isCurrentMonth = year === now.getFullYear() && month0 === now.getMonth();
+
+  function shift(delta: number) {
+    const d = new Date(year, month0 + delta, 1);
+    setYear(d.getFullYear());
+    setMonth0(d.getMonth());
   }
-
-  function nextMonth() {
-    if (monthIndex0 === 11) {
-      setYear((y) => y + 1);
-      setMonthIndex0(0);
-    } else {
-      setMonthIndex0((m) => m + 1);
-    }
-  }
-
-  const cells: (number | null)[] = [
-    ...Array.from({ length: leadingBlanks }, () => null),
-    ...Array.from({ length: daysCount }, (_, i) => i + 1),
-  ];
 
   return (
-    <div className="rounded-2xl border border-line bg-panel p-4 shadow-card">
+    <Card className="p-3.5">
       <div className="mb-3 flex items-center justify-between">
-        <button
-          onClick={prevMonth}
-          aria-label="Bulan sebelum"
-          className="grid h-7 w-7 place-items-center rounded-full text-muted transition-transform duration-150 hover:bg-panel-2 hover:text-fg active:scale-90"
+        <IconButton label="Bulan sebelum" onClick={() => shift(-1)}>
+          <IconChevronLeft className="h-4 w-4" />
+        </IconButton>
+        <p className="text-label font-semibold capitalize text-ink">{monthLabel}</p>
+        <IconButton
+          label="Bulan seterusnya"
+          onClick={() => shift(1)}
+          disabled={isCurrentMonth}
+          className="disabled:pointer-events-none disabled:opacity-30"
         >
-          ‹
-        </button>
-        <p className="text-sm font-bold capitalize text-fg">{monthLabel}</p>
-        <button
-          onClick={nextMonth}
-          aria-label="Bulan seterusnya"
-          className="grid h-7 w-7 place-items-center rounded-full text-muted transition-transform duration-150 hover:bg-panel-2 hover:text-fg active:scale-90"
-        >
-          ›
-        </button>
+          <IconChevronRight className="h-4 w-4" />
+        </IconButton>
       </div>
 
       <div className="grid grid-cols-7 gap-1.5">
-        {WEEKDAY_LABELS.map((w) => (
-          <div key={w} className="text-center text-[10px] font-bold text-muted">
+        {WEEKDAYS.map((w, i) => (
+          <div key={i} className="pb-0.5 text-center text-[0.625rem] font-semibold text-ink-3">
             {w}
           </div>
         ))}
-        {cells.map((day, i) => {
-          if (day === null) return <div key={`b${i}`} />;
-          const dateISO = isoOf(year, monthIndex0, day);
-          const intensity = getIntensity(dateISO);
-          const isToday = dateISO === todayISO;
+
+        {Array.from({ length: blanks }, (_, i) => (
+          <div key={`blank-${i}`} />
+        ))}
+
+        {Array.from({ length: dayCount }, (_, i) => i + 1).map((day) => {
+          const iso = isoOf(year, month0, day);
+          const level = levelOf(getIntensity(iso));
+          const isToday = iso === todayISO;
           return (
             <div
-              key={dateISO}
-              title={dateISO}
-              className={`aspect-square rounded-md ${bucketClass(intensity)} ${
-                isToday ? "ring-2 ring-accent ring-offset-1 ring-offset-panel" : ""
-              }`}
+              key={iso}
+              title={`${day} ${monthLabel}`}
+              className={cx(
+                "aspect-square rounded-[0.3rem] transition-colors duration-200",
+                LEVEL_CLASS[level],
+                isToday && "ring-2 ring-brand ring-offset-1 ring-offset-surface",
+              )}
             />
           );
         })}
       </div>
-    </div>
+
+      <div className="mt-3 flex items-center justify-end gap-1.5">
+        <span className="text-[0.625rem] text-ink-3">Kurang</span>
+        {[0, 1, 2, 3, 4].map((l) => (
+          <span key={l} className={cx("h-2.5 w-2.5 rounded-[0.2rem]", LEVEL_CLASS[l])} />
+        ))}
+        <span className="text-[0.625rem] text-ink-3">Banyak</span>
+      </div>
+    </Card>
   );
 }

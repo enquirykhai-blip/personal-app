@@ -1,37 +1,134 @@
 @import "tailwindcss";
 
 @theme {
-  --color-canvas: #f4f4f7;
-  --color-panel: #ffffff;
-  --color-panel-2: #f2f2f6;
-  --color-line: #eaeaef;
-  --color-accent: #14b88a;
-  --color-ink: #ffffff;
-  --color-muted: #8e8e96;
-  --color-fg: #16171d;
-  --color-dark: #14151a;
-  --color-dark-ink: #ffffff;
+  /* ---- Surfaces (warm neutral ramp) ---- */
+  --color-bg: #f6f6f8;
+  --color-surface: #ffffff;
+  --color-surface-2: #f2f2f5;
+  --color-surface-3: #e9e9ee;
+  --color-border: #e6e6ea;
+  --color-border-strong: #d5d5dc;
 
-  --shadow-card: 0 1px 2px rgba(20, 20, 30, 0.04), 0 10px 24px rgba(20, 20, 30, 0.06);
-  --shadow-card-lg: 0 2px 4px rgba(20, 20, 30, 0.04), 0 16px 36px rgba(20, 20, 30, 0.08);
-  --shadow-nav: 0 8px 16px rgba(20, 20, 30, 0.08), 0 2px 6px rgba(20, 20, 30, 0.06);
+  /* ---- Text: every step verified >= 4.5:1 on --color-surface ---- */
+  --color-ink: #17171b; /* 16.9:1 */
+  --color-ink-2: #5c5c67; /* 6.6:1  */
+  --color-ink-3: #696975; /* 5.1:1 against --color-bg, the worst case */
+
+  /* Borders of interactive controls need 3:1 (WCAG 1.4.11), unlike decorative rules. */
+  --color-control: #8e8e9b; /* 3.2:1 */
+
+  /* ---- Brand: passes 4.5:1 both as text-on-white and white-on-fill ---- */
+  --color-brand: #047857;
+  --color-brand-hover: #036148;
+  --color-brand-soft: #e8f7f1;
+  --color-brand-vivid: #10b981; /* decorative fills only, never behind text */
+
+  /* ---- Semantic ---- */
+  --color-danger: #b91c1c;
+  --color-danger-soft: #fef1f1;
+  --color-warn: #a15c07;
+  --color-warn-soft: #fdf6e7;
+  --color-info: #1d4ed8;
+  --color-info-soft: #eef3fe;
+  --color-plum: #6d28d9;
+  --color-plum-soft: #f3effe;
+
+  /* ---- Inverted (primary CTA) ---- */
+  --color-contrast: #17171b;
+  --color-contrast-hover: #000000;
+  --color-on-contrast: #ffffff;
+
+  /* ---- Type scale ---- */
+  --text-display: 1.75rem;
+  --text-display--line-height: 1.15;
+  --text-display--letter-spacing: -0.021em;
+  --text-display--font-weight: 700;
+
+  --text-title: 1.25rem;
+  --text-title--line-height: 1.25;
+  --text-title--letter-spacing: -0.014em;
+  --text-title--font-weight: 660;
+
+  --text-subtitle: 1rem;
+  --text-subtitle--line-height: 1.35;
+  --text-subtitle--letter-spacing: -0.008em;
+  --text-subtitle--font-weight: 600;
+
+  --text-body: 0.9375rem;
+  --text-body--line-height: 1.45;
+
+  --text-label: 0.8125rem;
+  --text-label--line-height: 1.4;
+  --text-label--font-weight: 500;
+
+  --text-caption: 0.75rem;
+  --text-caption--line-height: 1.35;
+
+  --text-overline: 0.6875rem;
+  --text-overline--line-height: 1.3;
+  --text-overline--letter-spacing: 0.06em;
+  --text-overline--font-weight: 650;
+
+  /* ---- Radii ---- */
+  --radius-field: 0.75rem;
+  --radius-card: 1.125rem;
+  --radius-sheet: 1.5rem;
+
+  /* ---- Elevation: tight contact shadow + soft ambient ---- */
+  --shadow-e1: 0 1px 2px rgba(23, 23, 27, 0.05), 0 1px 3px rgba(23, 23, 27, 0.04);
+  --shadow-e2: 0 1px 2px rgba(23, 23, 27, 0.05), 0 6px 16px -4px rgba(23, 23, 27, 0.08);
+  --shadow-e3: 0 2px 4px rgba(23, 23, 27, 0.05), 0 16px 32px -8px rgba(23, 23, 27, 0.12);
+
+  /* ---- Motion ---- */
+  --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
+  --ease-spring: cubic-bezier(0.34, 1.4, 0.64, 1);
 }
 
 :root {
   color-scheme: light;
 }
 
-body {
-  margin: 0;
-  font-family: system-ui, "Segoe UI", Roboto, sans-serif;
-  background: var(--color-canvas);
-  color: var(--color-fg);
+html {
+  -webkit-text-size-adjust: 100%;
 }
 
-@keyframes fade-in-up {
+body {
+  margin: 0;
+  font-family:
+    ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+  font-size: var(--text-body);
+  line-height: var(--text-body--line-height);
+  background: var(--color-bg);
+  color: var(--color-ink);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  /* Prevent iOS rubber-band revealing a different color behind the nav */
+  overscroll-behavior-y: none;
+}
+
+/* Visible, consistent keyboard focus everywhere — replaces the removed outlines. */
+:focus-visible {
+  outline: 2px solid var(--color-brand);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* Native controls should follow the light palette (date pickers, checkboxes). */
+input,
+select,
+textarea,
+button {
+  font: inherit;
+  color-scheme: light;
+}
+
+@keyframes rise {
   from {
     opacity: 0;
-    transform: translateY(6px);
+    transform: translateY(8px);
   }
   to {
     opacity: 1;
@@ -41,61 +138,67 @@ body {
 
 @keyframes pop {
   0% {
-    transform: scale(1);
-  }
-  45% {
-    transform: scale(1.25);
+    transform: scale(0.6);
+    opacity: 0;
   }
   100% {
     transform: scale(1);
+    opacity: 1;
   }
 }
 
-@keyframes shake {
+@keyframes nudge {
   0%,
   100% {
     transform: translateX(0);
   }
-  25% {
-    transform: translateX(-3px);
+  30% {
+    transform: translateX(-2px);
   }
-  75% {
-    transform: translateX(3px);
+  70% {
+    transform: translateX(2px);
   }
 }
 
-@keyframes tab-in {
+@keyframes shimmer {
   from {
-    opacity: 0;
-    transform: translateY(4px);
+    background-position: 200% 0;
   }
   to {
-    opacity: 1;
-    transform: translateY(0);
+    background-position: -200% 0;
   }
 }
 
-.animate-fade-in-up {
-  animation: fade-in-up 0.25s ease-out both;
+.animate-rise {
+  animation: rise 0.28s var(--ease-out-quart) both;
 }
 
 .animate-pop {
-  animation: pop 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+  animation: pop 0.3s var(--ease-spring) both;
 }
 
-.animate-shake {
-  animation: shake 0.3s ease;
+.animate-nudge {
+  animation: nudge 0.35s ease;
 }
 
-.animate-tab-in {
-  animation: tab-in 0.2s ease-out both;
+.animate-shimmer {
+  background-image: linear-gradient(
+    90deg,
+    var(--color-surface-2) 0%,
+    var(--color-surface-3) 50%,
+    var(--color-surface-2) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.2s linear infinite;
 }
 
+/* Respect the OS setting — motion is decoration, never the only signal. */
 @media (prefers-reduced-motion: reduce) {
-  .animate-fade-in-up,
-  .animate-pop,
-  .animate-shake,
-  .animate-tab-in {
-    animation: none;
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }
