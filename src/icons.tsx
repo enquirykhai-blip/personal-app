@@ -186,6 +186,14 @@ export function IconPause({ className }: IconProps) {
   );
 }
 
+export function IconCheck({ className }: IconProps) {
+  return (
+    <Svg className={className}>
+      <path d="m5 12.5 4.5 4.5L19 7" />
+    </Svg>
+  );
+}
+
 export function IconSettings({ className }: IconProps) {
   return (
     <Svg className={className}>

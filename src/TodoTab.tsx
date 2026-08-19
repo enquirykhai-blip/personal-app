@@ -6,6 +6,8 @@ import type { Subtask, Task, TaskCategory, TaskPriority } from "./types";
 import { isOverdue, sortTasks, subtaskProgress } from "./statsUtils";
 import { todayISO } from "./dateUtils";
 import { DEFAULT_OPENROUTER_MODEL, generateSubtasks } from "./ai";
+import { DEFAULT_TIMER_MINUTES, durationLabel, formatClock } from "./timeUtils";
+import TaskRunner from "./TaskRunner";
 import {
   IconChevronDown,
   IconPause,
@@ -54,23 +56,6 @@ function dueLabel(iso: string): string {
   if (days < -1) return `Lewat ${Math.abs(days)} hari`;
   return new Date(iso + "T00:00:00").toLocaleDateString("ms-MY", { day: "numeric", month: "short" });
 }
-
-/** "45 min" / "1j 30m" — short enough for a badge. */
-function durationLabel(minutes: number): string {
-  if (minutes < 60) return `${minutes} min`;
-  const h = Math.floor(minutes / 60);
-  const m = minutes % 60;
-  return m ? `${h}j ${m}m` : `${h} jam`;
-}
-
-/** "4:05" — a running clock, always mm:ss regardless of length. */
-function formatClock(totalSeconds: number): string {
-  const m = Math.floor(totalSeconds / 60);
-  const s = totalSeconds % 60;
-  return `${m}:${String(s).padStart(2, "0")}`;
-}
-
-const DEFAULT_TIMER_MINUTES = 5;
 
 type Filter = "active" | "done" | "all";
 
@@ -130,6 +115,28 @@ export default function TodoTab({ expandTaskId }: { expandTaskId?: string | null
     return () => clearInterval(id);
   }, [timer?.running, timer?.subtaskId]);
 
+  /* Full-screen step-by-step runner for one task at a time. */
+  const [runningTaskId, setRunningTaskId] = useState<string | null>(null);
+  const runningTask = tasks.find((t) => t.id === runningTaskId) ?? null;
+
+  function runnerToggleSubtask(subtaskId: string, done: boolean) {
+    if (!runningTaskId) return;
+    setTasks((prev) =>
+      prev.map((t) =>
+        t.id === runningTaskId
+          ? { ...t, subtasks: (t.subtasks ?? []).map((s) => (s.id === subtaskId ? { ...s, done } : s)) }
+          : t,
+      ),
+    );
+  }
+
+  function runnerFinish() {
+    if (runningTaskId) {
+      setTasks((prev) => prev.map((t) => (t.id === runningTaskId ? { ...t, done: true } : t)));
+    }
+    setRunningTaskId(null);
+  }
+
   function addTask(e: React.FormEvent) {
     e.preventDefault();
     const trimmed = text.trim();
@@ -181,6 +188,10 @@ export default function TodoTab({ expandTaskId }: { expandTaskId?: string | null
 
   function toggleTimerRunning() {
     setTimer((t) => (t ? { ...t, running: t.remaining > 0 && !t.running } : t));
+  }
+
+  function adjustTimer(deltaSeconds: number) {
+    setTimer((t) => (t ? { ...t, remaining: Math.max(0, t.remaining + deltaSeconds) } : t));
   }
 
   function addSubtask(taskId: string) {
@@ -280,6 +291,7 @@ export default function TodoTab({ expandTaskId }: { expandTaskId?: string | null
   const remaining = tasks.filter((t) => !t.done).length;
 
   return (
+    <>
     <div className="mx-auto max-w-2xl">
       <header className="mb-5">
         <h1 className="text-display text-ink">Tugasan</h1>
@@ -617,17 +629,33 @@ export default function TodoTab({ expandTaskId }: { expandTaskId?: string | null
                                 </div>
 
                                 {activeTimer && (
-                                  <div className="mb-1 ml-8 flex animate-rise items-center gap-2 rounded-field bg-ink px-3 py-2 text-white">
+                                  <div className="mb-1 ml-8 flex animate-rise items-center gap-1 rounded-field bg-ink px-2 py-2 text-white">
+                                    <button
+                                      type="button"
+                                      onClick={() => adjustTimer(-5)}
+                                      aria-label="Kurang 5 saat"
+                                      className="grid h-8 w-9 shrink-0 place-items-center rounded-field text-caption font-bold text-white/70 transition-colors hover:bg-white/15 hover:text-white"
+                                    >
+                                      -5
+                                    </button>
                                     <span
                                       role="timer"
                                       aria-live="polite"
                                       className={cx(
-                                        "flex-1 text-title font-bold tabular-nums",
+                                        "flex-1 text-center text-title font-bold tabular-nums",
                                         activeTimer.remaining === 0 && "animate-pulse",
                                       )}
                                     >
                                       {activeTimer.remaining === 0 ? "Siap! 🎉" : formatClock(activeTimer.remaining)}
                                     </span>
+                                    <button
+                                      type="button"
+                                      onClick={() => adjustTimer(5)}
+                                      aria-label="Tambah 5 saat"
+                                      className="grid h-8 w-9 shrink-0 place-items-center rounded-field text-caption font-bold text-white/70 transition-colors hover:bg-white/15 hover:text-white"
+                                    >
+                                      +5
+                                    </button>
                                     {activeTimer.remaining > 0 && (
                                       <IconButton
                                         label={activeTimer.running ? "Jeda pemasa" : "Sambung pemasa"}
@@ -686,6 +714,12 @@ export default function TodoTab({ expandTaskId }: { expandTaskId?: string | null
                           <IconSparkles className={cx("h-4 w-4", aiLoadingId === task.id && "animate-pulse")} />
                           {aiLoadingId === task.id ? "Menjana…" : "Jana dengan AI"}
                         </Button>
+                        {(task.subtasks ?? []).some((s) => !s.done) && (
+                          <Button size="sm" variant="brand" onClick={() => setRunningTaskId(task.id)}>
+                            <IconPlay className="h-4 w-4" />
+                            Mula
+                          </Button>
+                        )}
                       </div>
 
                       {aiError?.id === task.id && (
@@ -727,5 +761,15 @@ export default function TodoTab({ expandTaskId }: { expandTaskId?: string | null
         </div>
       )}
     </div>
+
+    {runningTask && (
+      <TaskRunner
+        task={runningTask}
+        onToggleSubtask={runnerToggleSubtask}
+        onFinish={runnerFinish}
+        onClose={() => setRunningTaskId(null)}
+      />
+    )}
+    </>
   );
 }
