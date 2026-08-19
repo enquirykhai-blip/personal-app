@@ -1,14 +1,14 @@
 import { useMemo } from "react";
 import { cx } from "./cx";
-import { useLocalStorage } from "./useLocalStorage";
-import { PRAYERS, type PrayerLog } from "./types";
+import { useAppData } from "./appData";
+import { PRAYERS } from "./types";
 import { lastNDays, todayISO } from "./dateUtils";
 import { PRAYER_LABELS, prayerStreak, togglePrayer } from "./prayerUtils";
 import MonthHeatmap from "./MonthHeatmap";
 import { Card, ProgressRing, SectionHeader } from "./ui";
 
 export default function SolatTab() {
-  const [log, setLog] = useLocalStorage<PrayerLog>("prayers", {});
+  const { prayers: log, setPrayers: setLog } = useAppData();
   const today = todayISO();
   const days = lastNDays(7);
   const todayDone = log[today] ?? [];

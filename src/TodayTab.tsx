@@ -1,7 +1,8 @@
 import { useMemo } from "react";
 import { cx } from "./cx";
-import { useLocalStorage } from "./useLocalStorage";
-import { PRAYERS, type Habit, type PrayerLog, type Task } from "./types";
+import { useAppData } from "./appData";
+import SyncBadge from "./SyncBadge";
+import { PRAYERS, type Task } from "./types";
 import { currentStreak, todayISO } from "./dateUtils";
 import {
   atRiskOfMissingTwice,
@@ -33,9 +34,7 @@ function priorityLabel(p: Task["priority"]) {
 }
 
 export default function TodayTab({ onNavigate }: { onNavigate: (tab: Tab, taskId?: string) => void }) {
-  const [tasks, setTasks] = useLocalStorage<Task[]>("tasks", []);
-  const [habits, setHabits] = useLocalStorage<Habit[]>("habits", []);
-  const [prayerLog, setPrayerLog] = useLocalStorage<PrayerLog>("prayers", {});
+  const { tasks, setTasks, habits, setHabits, prayers: prayerLog, setPrayers: setPrayerLog } = useAppData();
   const today = todayISO();
 
   const openTasks = useMemo(() => sortTasks(tasks.filter((t) => !t.done)), [tasks]);
@@ -111,9 +110,7 @@ export default function TodayTab({ onNavigate }: { onNavigate: (tab: Tab, taskId
           <p className="text-caption font-medium text-ink-3">{dateLabel}</p>
           <h1 className="mt-0.5 text-display text-ink">{greeting()}</h1>
         </div>
-        <div className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-brand text-label font-bold text-white">
-          MS
-        </div>
+        <SyncBadge />
       </header>
 
       {/* Focus — the one thing to do next */}

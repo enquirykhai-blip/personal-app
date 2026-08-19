@@ -1,6 +1,7 @@
 import { Fragment, useMemo, useState } from "react";
 import { cx } from "./cx";
 import { useLocalStorage } from "./useLocalStorage";
+import { useAppData } from "./appData";
 import type { Subtask, Task, TaskCategory, TaskPriority } from "./types";
 import { isOverdue, sortTasks, subtaskProgress } from "./statsUtils";
 import { todayISO } from "./dateUtils";
@@ -68,7 +69,7 @@ interface EditDraft {
 }
 
 export default function TodoTab({ expandTaskId }: { expandTaskId?: string | null }) {
-  const [tasks, setTasks] = useLocalStorage<Task[]>("tasks", []);
+  const { tasks, setTasks } = useAppData();
   /* Key stays under its original storage name so existing users keep theirs. */
   const [apiKey, setApiKey] = useLocalStorage("gemini_api_key", "");
   const [aiModel, setAiModel] = useLocalStorage("ai_model", DEFAULT_OPENROUTER_MODEL);

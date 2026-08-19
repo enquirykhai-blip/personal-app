@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { cx } from "./cx";
-import { useLocalStorage } from "./useLocalStorage";
+import { useAppData } from "./appData";
 import type { Habit } from "./types";
 import { currentStreak, lastNDays, todayISO } from "./dateUtils";
 import { atRiskOfMissingTwice } from "./statsUtils";
@@ -17,7 +17,7 @@ interface Draft {
 const EMPTY_DRAFT: Draft = { name: "", cue: "", identity: "" };
 
 export default function HabitsTab() {
-  const [habits, setHabits] = useLocalStorage<Habit[]>("habits", []);
+  const { habits, setHabits } = useAppData();
   const [draft, setDraft] = useState<Draft>(EMPTY_DRAFT);
   const [showOptions, setShowOptions] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
