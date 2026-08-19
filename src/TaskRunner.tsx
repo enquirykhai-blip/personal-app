@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import { cx } from "./cx";
 import type { Task } from "./types";
 import { DEFAULT_TIMER_MINUTES, durationLabel, formatClock } from "./timeUtils";
+import { playCompleteChime } from "./sound";
 import { IconCheck, IconChevronRight, IconPause, IconPlay, IconX } from "./icons";
 import { IconButton } from "./ui";
 
@@ -63,6 +64,7 @@ export default function TaskRunner({
   }
 
   function complete() {
+    playCompleteChime();
     if (!current.done) onToggleSubtask(current.id, true);
     goTo(index + 1);
   }
