@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { useLocalStorage } from "./useLocalStorage";
 import type { Subtask, Task, TaskCategory, TaskPriority } from "./types";
 import { isOverdue, sortTasks, subtaskProgress } from "./statsUtils";
+import { generateSubtasks } from "./ai";
 
 const CATEGORIES: { value: TaskCategory; label: string; color: string }[] = [
   { value: "personal", label: "Peribadi", color: "bg-accent/15 text-accent" },
@@ -44,6 +45,11 @@ export default function TodoTab() {
   const [editDraft, setEditDraft] = useState<EditDraft | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [subtaskDraft, setSubtaskDraft] = useState("");
+  const [apiKey, setApiKey] = useLocalStorage("gemini_api_key", "");
+  const [apiKeyDraft, setApiKeyDraft] = useState("");
+  const [showKeyForm, setShowKeyForm] = useState(false);
+  const [aiLoadingId, setAiLoadingId] = useState<string | null>(null);
+  const [aiError, setAiError] = useState<string | null>(null);
 
   function addTask(e: React.FormEvent) {
     e.preventDefault();
@@ -105,6 +111,35 @@ export default function TodoTab() {
     setTasks((prev) =>
       prev.map((t) => (t.id === taskId ? { ...t, subtasks: (t.subtasks ?? []).filter((s) => s.id !== subtaskId) } : t)),
     );
+  }
+
+  function saveApiKey(e: React.FormEvent) {
+    e.preventDefault();
+    const trimmed = apiKeyDraft.trim();
+    if (!trimmed) return;
+    setApiKey(trimmed);
+    setApiKeyDraft("");
+    setShowKeyForm(false);
+  }
+
+  async function handleGenerate(task: Task) {
+    setAiError(null);
+    if (!apiKey) {
+      setShowKeyForm(true);
+      return;
+    }
+    setAiLoadingId(task.id);
+    try {
+      const generated = await generateSubtasks(apiKey, task.text);
+      const newSubtasks: Subtask[] = generated.map((text) => ({ id: crypto.randomUUID(), text, done: false }));
+      setTasks((prev) =>
+        prev.map((t) => (t.id === task.id ? { ...t, subtasks: [...(t.subtasks ?? []), ...newSubtasks] } : t)),
+      );
+    } catch (err) {
+      setAiError(err instanceof Error ? err.message : "Ralat tidak diketahui.");
+    } finally {
+      setAiLoadingId(null);
+    }
   }
 
   function startEdit(task: Task) {
@@ -387,6 +422,59 @@ export default function TodoTab() {
                       +
                     </button>
                   </form>
+
+                  <div className="mt-2 flex items-center gap-2">
+                    <button
+                      onClick={() => handleGenerate(task)}
+                      disabled={aiLoadingId === task.id}
+                      className="flex items-center gap-1.5 rounded-full bg-violet-600 px-3 py-1.5 text-xs font-bold text-white transition-transform duration-150 active:scale-95 disabled:opacity-60"
+                    >
+                      {aiLoadingId === task.id ? "Menjana..." : "✨ Jana dengan AI"}
+                    </button>
+                    {apiKey && (
+                      <button
+                        onClick={() => setShowKeyForm((v) => !v)}
+                        className="text-xs font-semibold text-muted hover:text-fg"
+                      >
+                        Tukar API key
+                      </button>
+                    )}
+                  </div>
+
+                  {aiError && <p className="mt-2 text-xs font-semibold text-red-600">{aiError}</p>}
+
+                  {showKeyForm && (
+                    <form onSubmit={saveApiKey} className="mt-2 flex flex-col gap-2 rounded-xl border border-line bg-panel-2 p-3">
+                      <p className="text-xs text-muted">
+                        Masukkan API key Gemini anda (disimpan dalam browser ini sahaja, tidak dihantar ke mana-mana selain
+                        Google). Dapatkan percuma di{" "}
+                        <a
+                          href="https://aistudio.google.com/apikey"
+                          target="_blank"
+                          rel="noreferrer"
+                          className="font-bold text-accent underline"
+                        >
+                          aistudio.google.com/apikey
+                        </a>
+                        .
+                      </p>
+                      <div className="flex gap-2">
+                        <input
+                          type="password"
+                          value={apiKeyDraft}
+                          onChange={(e) => setApiKeyDraft(e.target.value)}
+                          placeholder="API key Gemini"
+                          className="flex-1 rounded-lg border border-line bg-panel px-2.5 py-1.5 text-sm text-fg placeholder:text-muted outline-none focus:border-accent"
+                        />
+                        <button
+                          type="submit"
+                          className="rounded-full bg-dark px-3 py-1.5 text-xs font-bold uppercase text-dark-ink"
+                        >
+                          Simpan
+                        </button>
+                      </div>
+                    </form>
+                  )}
                 </div>
               )}
             </li>
