@@ -4,6 +4,7 @@ import { useAppData } from "./appData";
 import { useLocalStorage } from "./useLocalStorage";
 import { DEFAULT_OPENROUTER_MODEL, detectProvider } from "./ai";
 import { firebaseEnabled, signInWithGoogle, signOut } from "./firebase";
+import EmailAuthForm from "./EmailAuthForm";
 import type { Habit, PrayerLog, Profile, Task } from "./types";
 import { Button, Card, SectionHeader, TextField } from "./ui";
 
@@ -34,6 +35,7 @@ export default function SettingsTab() {
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const [confirmWipe, setConfirmWipe] = useState(false);
+  const [showEmailAuth, setShowEmailAuth] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const draftProvider = detectProvider(keyDraft);
@@ -182,6 +184,26 @@ export default function SettingsTab() {
               <Button size="sm" className="mt-2.5 w-full" onClick={handleSignIn} disabled={busy}>
                 {busy ? "Membuka…" : "Log masuk dengan Google"}
               </Button>
+
+              {!showEmailAuth ? (
+                <button
+                  type="button"
+                  onClick={() => setShowEmailAuth(true)}
+                  className="mt-2.5 text-caption font-semibold text-ink-3 underline underline-offset-2"
+                >
+                  Guna email &amp; kata laluan sebaliknya
+                </button>
+              ) : (
+                <div className="mt-3 animate-rise border-t border-border pt-3">
+                  <EmailAuthForm
+                    initialMode="signup"
+                    onSuccess={() => {
+                      setShowEmailAuth(false);
+                      setNotice("Berjaya log masuk.");
+                    }}
+                  />
+                </div>
+              )}
             </>
           ) : (
             <>

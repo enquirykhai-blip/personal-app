@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import type { Habit, PrayerLog, Profile, Task } from "./types";
-import { firebaseEnabled, pushState, startAuth, subscribeToState } from "./firebase";
+import { completeGoogleRedirect, firebaseEnabled, pushState, startAuth, subscribeToState } from "./firebase";
 import { AppDataContext, type AppData, type SyncStatus } from "./appData";
 
 function readLocal<T>(key: string, fallback: T): T {
@@ -59,6 +59,9 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!firebaseEnabled) return;
     let stop: (() => void) | undefined;
+    // Finish any pending Google redirect before the normal listener attaches,
+    // so a failed link (account already in use) can retry as a plain sign-in.
+    void completeGoogleRedirect();
     startAuth((user) => {
       setUid(user?.uid ?? null);
       setIsAnonymous(user?.isAnonymous ?? true);

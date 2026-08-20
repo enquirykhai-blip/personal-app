@@ -70,23 +70,73 @@ export async function startAuth(onUser: (user: User | null) => void): Promise<()
 }
 
 /** Upgrades the anonymous account to Google so the same data follows the user to
-    other devices. If that Google account already owns cloud data, sign into it
-    instead of failing. */
+    other devices. Uses a full-page redirect rather than a popup: popups depend
+    on the popup and opener window being able to talk to each other, which
+    modern browsers' default Cross-Origin-Opener-Policy frequently blocks on
+    plain static hosting like GitHub Pages — the popup opens but Firebase never
+    finds out it finished, so the app hangs on "signing in" forever. A redirect
+    has no such window-to-window step. Completion is picked up by
+    completeGoogleRedirect() on the next load, and by the normal
+    onAuthStateChanged listener either way. */
 export async function signInWithGoogle(): Promise<void> {
   if (!firebaseEnabled) throw new Error("Firebase belum dikonfigurasi.");
   const { auth, authMod } = await loadSdk();
   const provider = new authMod.GoogleAuthProvider();
   const current = auth.currentUser;
   if (current?.isAnonymous) {
+    await authMod.linkWithRedirect(current, provider);
+  } else {
+    await authMod.signInWithRedirect(auth, provider);
+  }
+}
+
+/** Call once on startup to finish a Google redirect sign-in. Mainly exists to
+    catch the one error that only becomes knowable after returning: the Google
+    account already owns cloud data under its own (non-anonymous) uid, so the
+    link fails and this signs into that existing account instead. */
+export async function completeGoogleRedirect(): Promise<void> {
+  if (!firebaseEnabled) return;
+  const { auth, authMod } = await loadSdk();
+  try {
+    await authMod.getRedirectResult(auth);
+  } catch (err) {
+    const code = (err as { code?: string })?.code;
+    if (code === "auth/credential-already-in-use" || code === "auth/email-already-in-use") {
+      await authMod.signInWithRedirect(auth, new authMod.GoogleAuthProvider());
+    }
+  }
+}
+
+/** Creates a new email/password account. If an anonymous session already
+    exists, links it so the same data carries over instead of starting fresh. */
+export async function signUpWithEmail(email: string, password: string): Promise<void> {
+  if (!firebaseEnabled) throw new Error("Firebase belum dikonfigurasi.");
+  const { auth, authMod } = await loadSdk();
+  const current = auth.currentUser;
+  if (current?.isAnonymous) {
     try {
-      await authMod.linkWithPopup(current, provider);
+      const credential = authMod.EmailAuthProvider.credential(email, password);
+      await authMod.linkWithCredential(current, credential);
       return;
     } catch (err) {
       const code = (err as { code?: string })?.code;
       if (code !== "auth/credential-already-in-use" && code !== "auth/email-already-in-use") throw err;
     }
   }
-  await authMod.signInWithPopup(auth, provider);
+  await authMod.createUserWithEmailAndPassword(auth, email, password);
+}
+
+/** Signs into an existing email/password account. */
+export async function signInWithEmail(email: string, password: string): Promise<void> {
+  if (!firebaseEnabled) throw new Error("Firebase belum dikonfigurasi.");
+  const { auth, authMod } = await loadSdk();
+  await authMod.signInWithEmailAndPassword(auth, email, password);
+}
+
+export async function resetPassword(email: string): Promise<void> {
+  if (!firebaseEnabled) throw new Error("Firebase belum dikonfigurasi.");
+  const { auth, authMod } = await loadSdk();
+  await authMod.sendPasswordResetEmail(auth, email);
 }
 
 export async function signOut(): Promise<void> {
