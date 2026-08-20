@@ -56,11 +56,11 @@ export default function SignInGate({ onDone }: { onDone: () => void }) {
             onClick={() => setShowEmail(true)}
             className="text-caption font-semibold text-ink-3 underline underline-offset-2"
           >
-            Daftar akaun guna email &amp; kata laluan
+            Log masuk guna email &amp; kata laluan
           </button>
         ) : (
           <div className={cx("w-full animate-rise border-t border-border pt-5")}>
-            <EmailAuthForm initialMode="signup" onSuccess={onDone} />
+            <EmailAuthForm onSuccess={onDone} />
           </div>
         )}
 

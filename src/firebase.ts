@@ -111,10 +111,9 @@ export async function completeGoogleRedirect(): Promise<void> {
   }
 }
 
-/** Creates a new email/password account. If an anonymous session already
+/** Creates the email/password account. If an anonymous session already
     exists, links it so the same data carries over instead of starting fresh. */
-export async function signUpWithEmail(email: string, password: string): Promise<void> {
-  if (!firebaseEnabled) throw new Error("Firebase belum dikonfigurasi.");
+async function createEmailAccount(email: string, password: string): Promise<void> {
   const { auth, authMod } = await loadSdk();
   const current = auth.currentUser;
   if (current?.isAnonymous) {
@@ -130,11 +129,33 @@ export async function signUpWithEmail(email: string, password: string): Promise<
   await authMod.createUserWithEmailAndPassword(auth, email, password);
 }
 
-/** Signs into an existing email/password account. */
+/** The one email/password entry point: signs in if the account already
+    exists, transparently creates it if it doesn't — one action for the user,
+    "sign in", rather than a separate register step. Firebase's current error
+    codes don't distinguish "wrong password" from "no such account" up front,
+    so this tries signing in first and only attempts account creation when
+    that specifically fails as an unknown user; if creation then reports the
+    email is already taken, the original attempt really was a wrong
+    password, not a missing account. */
 export async function signInWithEmail(email: string, password: string): Promise<void> {
   if (!firebaseEnabled) throw new Error("Firebase belum dikonfigurasi.");
   const { auth, authMod } = await loadSdk();
-  await authMod.signInWithEmailAndPassword(auth, email, password);
+  try {
+    await authMod.signInWithEmailAndPassword(auth, email, password);
+    return;
+  } catch (err) {
+    const code = (err as { code?: string })?.code;
+    if (code !== "auth/user-not-found" && code !== "auth/invalid-credential") throw err;
+  }
+  try {
+    await createEmailAccount(email, password);
+  } catch (err) {
+    const code = (err as { code?: string })?.code;
+    if (code === "auth/email-already-in-use" || code === "auth/credential-already-in-use") {
+      throw Object.assign(new Error("Email atau kata laluan salah."), { code: "auth/wrong-password" });
+    }
+    throw err;
+  }
 }
 
 export async function resetPassword(email: string): Promise<void> {

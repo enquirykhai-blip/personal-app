@@ -1,27 +1,21 @@
 import { useState } from "react";
-import { resetPassword, signInWithEmail, signUpWithEmail } from "./firebase";
+import { resetPassword, signInWithEmail } from "./firebase";
 import { Button, TextField } from "./ui";
 
 function errorMessage(err: unknown): string {
   const code = (err as { code?: string })?.code ?? "";
-  if (code === "auth/email-already-in-use") return "Email ini dah didaftarkan. Cuba log masuk sebaliknya.";
   if (code === "auth/invalid-email") return "Format email tidak sah.";
   if (code === "auth/weak-password") return "Kata laluan terlalu pendek — sekurang-kurangnya 6 aksara.";
-  if (code === "auth/invalid-credential" || code === "auth/wrong-password" || code === "auth/user-not-found") {
+  if (code === "auth/wrong-password" || code === "auth/invalid-credential") {
     return "Email atau kata laluan salah.";
   }
   if (code === "auth/too-many-requests") return "Terlalu banyak percubaan. Cuba lagi sebentar.";
   return "Gagal. Cuba lagi.";
 }
 
-export default function EmailAuthForm({
-  initialMode = "signup",
-  onSuccess,
-}: {
-  initialMode?: "signup" | "login";
-  onSuccess: () => void;
-}) {
-  const [mode, setMode] = useState<"signup" | "login">(initialMode);
+/** One email/password field pair, one action: sign in. The account is
+    created automatically the first time — no separate register step. */
+export default function EmailAuthForm({ onSuccess }: { onSuccess: () => void }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
@@ -34,11 +28,7 @@ export default function EmailAuthForm({
     setNotice(null);
     setBusy(true);
     try {
-      if (mode === "signup") {
-        await signUpWithEmail(email.trim(), password);
-      } else {
-        await signInWithEmail(email.trim(), password);
-      }
+      await signInWithEmail(email.trim(), password);
       onSuccess();
     } catch (err) {
       setError(errorMessage(err));
@@ -84,30 +74,23 @@ export default function EmailAuthForm({
         onChange={(e) => setPassword(e.target.value)}
         placeholder="Kata laluan"
         aria-label="Kata laluan"
-        autoComplete={mode === "signup" ? "new-password" : "current-password"}
+        autoComplete="current-password"
         minLength={6}
         required
         className="h-11 text-label"
       />
 
       <Button type="submit" variant="secondary" disabled={busy || !email.trim() || !password} className="w-full">
-        {busy ? "Sila tunggu…" : mode === "signup" ? "Daftar dengan email" : "Log masuk dengan email"}
+        {busy ? "Sila tunggu…" : "Log masuk"}
       </Button>
 
-      <div className="flex items-center justify-between text-caption">
-        <button
-          type="button"
-          onClick={() => setMode(mode === "signup" ? "login" : "signup")}
-          className="font-semibold text-ink underline underline-offset-2"
-        >
-          {mode === "signup" ? "Dah ada akaun? Log masuk" : "Belum ada akaun? Daftar"}
-        </button>
-        {mode === "login" && (
-          <button type="button" onClick={handleForgotPassword} className="text-ink-3 underline underline-offset-2">
-            Lupa kata laluan?
-          </button>
-        )}
-      </div>
+      <button
+        type="button"
+        onClick={handleForgotPassword}
+        className="self-end text-caption text-ink-3 underline underline-offset-2"
+      >
+        Lupa kata laluan?
+      </button>
 
       {error && (
         <p role="alert" className="text-caption font-medium text-danger">
