@@ -189,7 +189,7 @@ export default function SettingsTab() {
                   onClick={() => setShowEmailAuth(true)}
                   className="mt-2.5 text-caption font-semibold text-ink-3 underline underline-offset-2"
                 >
-                  Guna email &amp; kata laluan sebaliknya
+                  Daftar akaun guna email &amp; kata laluan
                 </button>
               ) : (
                 <div className="mt-3 animate-rise border-t border-border pt-3">

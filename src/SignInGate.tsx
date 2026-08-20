@@ -56,7 +56,7 @@ export default function SignInGate({ onDone }: { onDone: () => void }) {
             onClick={() => setShowEmail(true)}
             className="text-caption font-semibold text-ink-3 underline underline-offset-2"
           >
-            Guna email &amp; kata laluan sebaliknya
+            Daftar akaun guna email &amp; kata laluan
           </button>
         ) : (
           <div className={cx("w-full animate-rise border-t border-border pt-5")}>
