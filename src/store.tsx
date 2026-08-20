@@ -30,6 +30,14 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
   const [isAnonymous, setIsAnonymous] = useState(true);
   const [accountLabel, setAccountLabel] = useState<string | null>(null);
   const [sync, setSync] = useState<SyncStatus>(firebaseEnabled ? "connecting" : "off");
+  const [needsSignInChoice, setNeedsSignInChoice] = useState(
+    () => firebaseEnabled && !readLocal<boolean>("auth_onboarded", false),
+  );
+
+  const completeSignInChoice = useCallback(() => {
+    writeLocal("auth_onboarded", true);
+    setNeedsSignInChoice(false);
+  }, []);
 
   /* Writes we originate must not be echoed back as remote changes. */
   const applyingRemote = useRef(false);
@@ -56,13 +64,15 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       setIsAnonymous(user?.isAnonymous ?? true);
       setAccountLabel(user && !user.isAnonymous ? (user.displayName ?? user.email) : null);
       if (!user) setSync("error");
+      // Already linked to Google from before this gate existed — nothing to ask.
+      if (user && !user.isAnonymous) completeSignInChoice();
     })
       .then((fn) => {
         stop = fn;
       })
       .catch(() => setSync("error"));
     return () => stop?.();
-  }, []);
+  }, [completeSignInChoice]);
 
   /* --- Pull: remote is the source of truth once it exists --- */
   useEffect(() => {
@@ -154,9 +164,10 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       tasks, habits, prayers, profile,
       setTasks, setHabits, setPrayers, setProfile, replaceAll,
       sync, isAnonymous, accountLabel,
+      needsSignInChoice, completeSignInChoice,
     }),
     [tasks, habits, prayers, profile, setTasks, setHabits, setPrayers, setProfile, replaceAll,
-     sync, isAnonymous, accountLabel],
+     sync, isAnonymous, accountLabel, needsSignInChoice, completeSignInChoice],
   );
 
   return <AppDataContext.Provider value={value}>{children}</AppDataContext.Provider>;

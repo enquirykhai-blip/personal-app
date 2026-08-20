@@ -17,6 +17,10 @@ export interface AppData {
   sync: SyncStatus;
   isAnonymous: boolean;
   accountLabel: string | null;
+  /** True once, on the very first launch with cloud sync configured, until the
+      user picks Google sign-in or continues as a guest. */
+  needsSignInChoice: boolean;
+  completeSignInChoice: () => void;
 }
 
 export const AppDataContext = createContext<AppData | null>(null);
