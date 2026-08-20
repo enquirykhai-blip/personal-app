@@ -4,19 +4,12 @@ import { useAppData } from "./appData";
 import { celebrateTaskDone } from "./celebrate";
 
 import { PRAYERS, type Task } from "./types";
-import { currentStreak, todayISO } from "./dateUtils";
-import {
-  atRiskOfMissingTwice,
-  habitsDoneToday,
-  isDueToday,
-  isOverdue,
-  sortTasks,
-  subtaskProgress,
-} from "./statsUtils";
+import { todayISO } from "./dateUtils";
+import { isDueToday, isOverdue, sortTasks, subtaskProgress } from "./statsUtils";
 import { PRAYER_LABELS, togglePrayer } from "./prayerUtils";
 import type { Tab } from "./App";
-import { IconList, IconMoon, IconPlus, IconRepeat, IconTarget } from "./icons";
-import { Button, Card, Checkbox, Chip, EmptyState, PriorityMark, ProgressRing, SectionHeader } from "./ui";
+import { IconList, IconMoon, IconPlus, IconTarget } from "./icons";
+import { Button, Card, Chip, EmptyState, PriorityMark, ProgressRing, SectionHeader } from "./ui";
 
 function greeting(): string {
   const h = new Date().getHours();
@@ -31,8 +24,7 @@ function priorityLabel(p: Task["priority"]) {
 }
 
 export default function TodayTab({ onNavigate }: { onNavigate: (tab: Tab, taskId?: string) => void }) {
-  const { tasks, setTasks, habits, setHabits, prayers: prayerLog, setPrayers: setPrayerLog, profile } =
-    useAppData();
+  const { tasks, setTasks, prayers: prayerLog, setPrayers: setPrayerLog, profile } = useAppData();
   const today = todayISO();
 
   const openTasks = useMemo(() => sortTasks(tasks.filter((t) => !t.done)), [tasks]);
@@ -43,27 +35,15 @@ export default function TodayTab({ onNavigate }: { onNavigate: (tab: Tab, taskId
     return urgent[0] ?? openTasks[0] ?? null;
   }, [openTasks]);
 
-  const pendingHabits = useMemo(
-    () => habits.filter((h) => !h.completions.includes(today)),
-    [habits, today],
-  );
-
   const todayPrayers = prayerLog[today] ?? [];
   const pendingPrayers = PRAYERS.filter((p) => !todayPrayers.includes(p));
 
   const doneToday = tasks.filter((t) => t.done).length;
-  const habitsToday = habitsDoneToday(habits);
 
   function toggleTask(id: string) {
     const task = tasks.find((t) => t.id === id);
     if (task && !task.done) celebrateTaskDone(task.text);
     setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, done: !t.done } : t)));
-  }
-
-  function markHabitDone(id: string) {
-    setHabits((prev) =>
-      prev.map((h) => (h.id === id ? { ...h, completions: [...h.completions, today] } : h)),
-    );
   }
 
   function markPrayerDone(prayer: (typeof PRAYERS)[number]) {
@@ -83,13 +63,6 @@ export default function TodayTab({ onNavigate }: { onNavigate: (tab: Tab, taskId
       icon: IconList,
       value: doneToday,
       total: tasks.length,
-    },
-    {
-      tab: "habits" as Tab,
-      label: "Tabiat",
-      icon: IconRepeat,
-      value: habitsToday,
-      total: habits.length,
     },
     {
       tab: "solat" as Tab,
@@ -189,7 +162,7 @@ export default function TodayTab({ onNavigate }: { onNavigate: (tab: Tab, taskId
       {/* Progress summary — informs and navigates (replaces duplicate nav tiles) */}
       <section className="mb-7">
         <SectionHeader title="Kemajuan hari ini" />
-        <div className="grid grid-cols-3 gap-2.5">
+        <div className="grid grid-cols-2 gap-2.5">
           {summary.map((s) => {
             const Icon = s.icon;
             const complete = s.total > 0 && s.value === s.total;
@@ -220,7 +193,7 @@ export default function TodayTab({ onNavigate }: { onNavigate: (tab: Tab, taskId
       </section>
 
       {/* Prayers */}
-      <section className="mb-7">
+      <section>
         <SectionHeader
           title="Solat"
           action={
@@ -250,66 +223,6 @@ export default function TodayTab({ onNavigate }: { onNavigate: (tab: Tab, taskId
               </button>
             ))}
           </div>
-        )}
-      </section>
-
-      {/* Habits */}
-      <section>
-        <SectionHeader
-          title="Tabiat"
-          action={
-            <span className="text-caption tabular-nums text-ink-3">
-              {habitsToday}/{habits.length}
-            </span>
-          }
-        />
-        {pendingHabits.length === 0 ? (
-          habits.length === 0 ? (
-            <EmptyState
-              icon="🔁"
-              title="Belum ada tabiat"
-              hint="Mulakan dengan satu tabiat kecil yang boleh diulang setiap hari."
-              action={
-                <Button size="sm" onClick={() => onNavigate("habits")}>
-                  Tambah tabiat
-                </Button>
-              }
-            />
-          ) : (
-            <div className="rounded-card border border-brand/25 bg-brand-soft px-4 py-3.5 text-center">
-              <p className="text-label font-semibold text-brand">Semua tabiat siap hari ini 🔥</p>
-            </div>
-          )
-        ) : (
-          <ul className="flex flex-col gap-2">
-            {pendingHabits.map((habit) => {
-              const streak = currentStreak(habit.completions);
-              const atRisk = atRiskOfMissingTwice(habit);
-              return (
-                <li key={habit.id} className="animate-rise">
-                  <Card className={cx("flex items-center gap-2 p-2.5", atRisk && "border-danger/30 bg-danger-soft")}>
-                    <Checkbox
-                      checked={false}
-                      onChange={() => markHabitDone(habit.id)}
-                      label={`Tandakan ${habit.name} siap`}
-                    />
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-label font-semibold text-ink">{habit.name}</p>
-                      <p className="text-caption text-ink-3">
-                        {atRisk ? (
-                          <span className="font-semibold text-danger">Jangan terlepas dua hari berturut-turut</span>
-                        ) : streak > 0 ? (
-                          `🔥 ${streak} hari berturut-turut`
-                        ) : (
-                          "Belum bermula"
-                        )}
-                      </p>
-                    </div>
-                  </Card>
-                </li>
-              );
-            })}
-          </ul>
         )}
       </section>
     </div>

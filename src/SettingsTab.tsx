@@ -5,7 +5,7 @@ import { useLocalStorage } from "./useLocalStorage";
 import { DEFAULT_OPENROUTER_MODEL, detectProvider } from "./ai";
 import { firebaseEnabled, signInWithGoogle, signOut } from "./firebase";
 import EmailAuthForm from "./EmailAuthForm";
-import type { Habit, PrayerLog, Profile, Task } from "./types";
+import type { PrayerLog, Profile, Task } from "./types";
 import { Button, Card, SectionHeader, TextField } from "./ui";
 
 const SYNC_TEXT: Record<string, string> = {
@@ -22,8 +22,7 @@ function maskKey(key: string): string {
 }
 
 export default function SettingsTab() {
-  const { profile, setProfile, tasks, habits, prayers, replaceAll, sync, isAnonymous, accountLabel } =
-    useAppData();
+  const { profile, setProfile, tasks, prayers, replaceAll, sync, isAnonymous, accountLabel } = useAppData();
 
   const [apiKey, setApiKey] = useLocalStorage("gemini_api_key", "");
   const [aiModel, setAiModel] = useLocalStorage("ai_model", DEFAULT_OPENROUTER_MODEL);
@@ -84,7 +83,7 @@ export default function SettingsTab() {
   }
 
   function exportData() {
-    const blob = new Blob([JSON.stringify({ tasks, habits, prayers, profile }, null, 2)], {
+    const blob = new Blob([JSON.stringify({ tasks, prayers, profile }, null, 2)], {
       type: "application/json",
     });
     const url = URL.createObjectURL(blob);
@@ -101,7 +100,6 @@ export default function SettingsTab() {
       const parsed = JSON.parse(await file.text());
       replaceAll({
         tasks: Array.isArray(parsed.tasks) ? (parsed.tasks as Task[]) : [],
-        habits: Array.isArray(parsed.habits) ? (parsed.habits as Habit[]) : [],
         prayers: parsed.prayers && typeof parsed.prayers === "object" ? (parsed.prayers as PrayerLog) : {},
         profile: parsed.profile && typeof parsed.profile === "object" ? (parsed.profile as Profile) : {},
       });
@@ -113,7 +111,7 @@ export default function SettingsTab() {
   }
 
   function wipe() {
-    replaceAll({ tasks: [], habits: [], prayers: {}, profile: {} });
+    replaceAll({ tasks: [], prayers: {}, profile: {} });
     setNameDraft("");
     setConfirmWipe(false);
     setNotice("Semua data dipadam.");
@@ -123,7 +121,7 @@ export default function SettingsTab() {
     <div className="mx-auto max-w-2xl">
       <header className="mb-6">
         <h1 className="text-display text-ink">Tetapan</h1>
-        <p className="mt-0.5 text-caption text-ink-3">Profil, sync, AI, dan data</p>
+        <p className="mt-0.5 text-caption text-ink-3">Profil, akaun, AI, dan data</p>
       </header>
 
       {notice && (
@@ -155,9 +153,9 @@ export default function SettingsTab() {
         </Card>
       </section>
 
-      {/* Storage & account */}
+      {/* Account: sign in / sign out live here, together with sync status */}
       <section className="mb-7">
-        <SectionHeader title="Penyimpanan" />
+        <SectionHeader title="Akaun" />
         <Card className="p-3">
           <div className="flex items-center gap-2">
             <span
@@ -324,7 +322,7 @@ export default function SettingsTab() {
         <SectionHeader title="Data" />
         <Card className="p-3">
           <p className="text-caption text-ink-2">
-            {tasks.length} tugasan · {habits.length} tabiat · {Object.keys(prayers).length} hari solat
+            {tasks.length} tugasan · {Object.keys(prayers).length} hari solat
           </p>
           <div className="mt-2.5 flex flex-wrap gap-2">
             <Button variant="secondary" size="sm" onClick={exportData}>
@@ -350,7 +348,7 @@ export default function SettingsTab() {
             {confirmWipe ? (
               <div className="flex flex-wrap items-center gap-2">
                 <p className="flex-1 text-caption font-semibold text-ink">
-                  Padam semua tugasan, tabiat dan rekod solat? Tindakan ini tidak boleh dibatalkan.
+                  Padam semua tugasan dan rekod solat? Tindakan ini tidak boleh dibatalkan.
                 </p>
                 <Button size="sm" onClick={wipe}>
                   Ya, padam

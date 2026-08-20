@@ -1,19 +1,17 @@
 import { createContext, useContext } from "react";
-import type { Habit, PrayerLog, Profile, Task } from "./types";
+import type { PrayerLog, Profile, Task } from "./types";
 
 export type SyncStatus = "off" | "connecting" | "synced" | "saving" | "error";
 
 export interface AppData {
   tasks: Task[];
-  habits: Habit[];
   prayers: PrayerLog;
   profile: Profile;
   setTasks: (update: (prev: Task[]) => Task[]) => void;
-  setHabits: (update: (prev: Habit[]) => Habit[]) => void;
   setPrayers: (update: (prev: PrayerLog) => PrayerLog) => void;
   setProfile: (update: (prev: Profile) => Profile) => void;
   /** Replaces everything at once — used by settings import. */
-  replaceAll: (data: { tasks: Task[]; habits: Habit[]; prayers: PrayerLog; profile: Profile }) => void;
+  replaceAll: (data: { tasks: Task[]; prayers: PrayerLog; profile: Profile }) => void;
   sync: SyncStatus;
   isAnonymous: boolean;
   accountLabel: string | null;

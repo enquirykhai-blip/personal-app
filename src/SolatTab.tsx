@@ -4,7 +4,6 @@ import { useAppData } from "./appData";
 import { PRAYERS } from "./types";
 import { lastNDays, todayISO } from "./dateUtils";
 import { PRAYER_LABELS, prayerStreak, togglePrayer } from "./prayerUtils";
-import MonthHeatmap from "./MonthHeatmap";
 import { Card, ProgressRing, SectionHeader } from "./ui";
 
 export default function SolatTab() {
@@ -123,15 +122,6 @@ export default function SolatTab() {
             })}
           </div>
         </Card>
-      </section>
-
-      {/* Monthly heatmap */}
-      <section>
-        <SectionHeader title="Bulanan" />
-        <MonthHeatmap
-          todayISO={today}
-          getIntensity={(iso) => (log[iso]?.length ?? 0) / PRAYERS.length}
-        />
       </section>
     </div>
   );

@@ -2,21 +2,19 @@ import { useEffect, useState, type ReactElement } from "react";
 import { cx } from "./cx";
 import TodayTab from "./TodayTab";
 import TodoTab from "./TodoTab";
-import HabitsTab from "./HabitsTab";
 import SolatTab from "./SolatTab";
 import SettingsTab from "./SettingsTab";
 import SuccessCelebration from "./SuccessCelebration";
 import SignInGate from "./SignInGate";
 import { onCelebrate } from "./celebrate";
 import { useAppData } from "./appData";
-import { IconHome, IconList, IconMoon, IconRepeat, IconSettings } from "./icons";
+import { IconHome, IconList, IconMoon, IconSettings } from "./icons";
 
-export type Tab = "today" | "todo" | "habits" | "solat" | "settings";
+export type Tab = "today" | "todo" | "solat" | "settings";
 
 const TABS: { value: Tab; label: string; icon: (p: { className?: string }) => ReactElement }[] = [
   { value: "today", label: "Utama", icon: IconHome },
   { value: "todo", label: "Tugasan", icon: IconList },
-  { value: "habits", label: "Tabiat", icon: IconRepeat },
   { value: "solat", label: "Solat", icon: IconMoon },
   { value: "settings", label: "Tetapan", icon: IconSettings },
 ];
@@ -43,7 +41,6 @@ export default function App() {
       <main key={tab} className="animate-rise px-4 pb-32 pt-7">
         {tab === "today" && <TodayTab onNavigate={navigate} />}
         {tab === "todo" && <TodoTab expandTaskId={expandTaskId} />}
-        {tab === "habits" && <HabitsTab />}
         {tab === "solat" && <SolatTab />}
         {tab === "settings" && <SettingsTab />}
       </main>
@@ -52,7 +49,7 @@ export default function App() {
         aria-label="Navigasi utama"
         className="fixed inset-x-0 bottom-0 z-20 px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))]"
       >
-        <div className="mx-auto flex max-w-md items-center gap-0.5 rounded-full border border-border bg-surface/85 p-1.5 shadow-e3 backdrop-blur-xl">
+        <div className="mx-auto flex max-w-sm items-center gap-0.5 rounded-full border border-border bg-surface/85 p-1.5 shadow-e3 backdrop-blur-xl">
           {TABS.map((t) => {
             const Icon = t.icon;
             const active = tab === t.value;

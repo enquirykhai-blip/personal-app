@@ -1,5 +1,5 @@
-import type { Habit, Task, TaskPriority } from "./types";
-import { currentStreak, todayISO, yesterdayISO } from "./dateUtils";
+import type { Task, TaskPriority } from "./types";
+import { todayISO } from "./dateUtils";
 
 const PRIORITY_WEIGHT: Record<TaskPriority, number> = { high: 0, medium: 1, low: 2 };
 
@@ -20,24 +20,6 @@ export function isOverdue(task: Task): boolean {
 
 export function isDueToday(task: Task): boolean {
   return task.dueDate === todayISO();
-}
-
-export function longestCurrentStreak(habits: Habit[]): number {
-  return habits.reduce((max, h) => Math.max(max, currentStreak(h.completions)), 0);
-}
-
-export function habitsDoneToday(habits: Habit[]): number {
-  const today = todayISO();
-  return habits.filter((h) => h.completions.includes(today)).length;
-}
-
-/** True when the habit was skipped yesterday and still isn't done today — the "never miss twice" nudge. */
-export function atRiskOfMissingTwice(habit: Habit): boolean {
-  const today = todayISO();
-  const yesterday = yesterdayISO();
-  const existedYesterday = habit.createdAt.slice(0, 10) <= yesterday;
-  if (!existedYesterday) return false;
-  return !habit.completions.includes(yesterday) && !habit.completions.includes(today);
 }
 
 export function subtaskProgress(task: Task): { done: number; total: number } {

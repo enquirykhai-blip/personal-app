@@ -8,27 +8,6 @@ export function addDays(iso: string, days: number): string {
   return d.toISOString().slice(0, 10);
 }
 
-export function yesterdayISO(): string {
-  return addDays(todayISO(), -1);
-}
-
-export function currentStreak(completions: string[]): number {
-  const set = new Set(completions);
-  let streak = 0;
-  let cursor = todayISO();
-
-  if (!set.has(cursor)) {
-    cursor = addDays(cursor, -1);
-    if (!set.has(cursor)) return 0;
-  }
-
-  while (set.has(cursor)) {
-    streak++;
-    cursor = addDays(cursor, -1);
-  }
-  return streak;
-}
-
 export function lastNDays(n: number): string[] {
   const days: string[] = [];
   let cursor = todayISO();
