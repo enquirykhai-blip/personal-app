@@ -25,15 +25,6 @@ jobs:
           node-version: 20
           cache: npm
       - run: npm ci
-      - name: Report whether Firebase repo variables are set (no values printed)
-        run: |
-          if [ -n "$VITE_FIREBASE_PROJECT_ID" ]; then
-            echo "Firebase repo variables: SET — cloud sync will be built in"
-          else
-            echo "Firebase repo variables: NOT SET — building local-only mode"
-          fi
-        env:
-          VITE_FIREBASE_PROJECT_ID: ${{ vars.VITE_FIREBASE_PROJECT_ID }}
       # Firebase config is public by design, so repo *variables* are the right
       # place for it — not secrets. Leave them unset and the build produces the
       # local-only app, with the Firebase SDK excluded from the bundle.
