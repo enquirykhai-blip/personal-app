@@ -54,11 +54,16 @@ export type CloudState = {
   updatedAt?: unknown;
 };
 
-/** Signs in silently so data is scoped to an identity without a login wall. */
+/** Signs in silently so data is scoped to an identity without a login wall.
+    Uses onIdTokenChanged rather than onAuthStateChanged: linking an
+    anonymous session to email/password (linkWithCredential) keeps the same
+    uid and mutates the user in place, so onAuthStateChanged never fires for
+    it — only the ID token listener reliably picks up that isAnonymous just
+    flipped to false. */
 export async function startAuth(onUser: (user: User | null) => void): Promise<() => void> {
   if (!firebaseEnabled) return () => {};
   const { auth, authMod } = await loadSdk();
-  return authMod.onAuthStateChanged(auth, (user) => {
+  return authMod.onIdTokenChanged(auth, (user) => {
     if (!user) {
       // Anonymous by default: rules still isolate the data, no sign-in needed.
       authMod.signInAnonymously(auth).catch(() => onUser(null));

@@ -54,6 +54,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
   useEffect(() => writeLocal("profile", profile), [profile]);
 
   /* --- Auth --- */
+  const wasRealAccount = useRef(false);
   useEffect(() => {
     if (!firebaseEnabled) return;
     let stop: (() => void) | undefined;
@@ -65,8 +66,24 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       setIsAnonymous(user?.isAnonymous ?? true);
       setAccountLabel(user && !user.isAnonymous ? (user.displayName ?? user.email) : null);
       if (!user) setSync("error");
-      // Already linked to Google from before this gate existed — nothing to ask.
-      if (user && !user.isAnonymous) completeSignInChoice();
+      if (user && !user.isAnonymous) {
+        // Already linked to Google/email from before this gate existed — nothing to ask.
+        completeSignInChoice();
+        wasRealAccount.current = true;
+      } else if (user?.isAnonymous && wasRealAccount.current) {
+        // A real account just signed out. Falling back to a fresh anonymous
+        // session silently would make "Log keluar" look like it did nothing —
+        // ask again instead of quietly continuing as a guest. Also clear the
+        // signed-out account's data from view; otherwise it would still show
+        // on screen, and worse, get pushed into the new anonymous session's
+        // own cloud doc as if it were seed data.
+        wasRealAccount.current = false;
+        writeLocal("auth_onboarded", false);
+        setNeedsSignInChoice(true);
+        setTasksState([]);
+        setPrayersState({});
+        setProfileState({});
+      }
     })
       .then((fn) => {
         stop = fn;
