@@ -3,8 +3,7 @@ import { cx } from "./cx";
 import { useAppData } from "./appData";
 import { useLocalStorage } from "./useLocalStorage";
 import { DEFAULT_OPENROUTER_MODEL, detectProvider } from "./ai";
-import { firebaseEnabled, signInWithGoogle, signOut } from "./firebase";
-import EmailAuthForm from "./EmailAuthForm";
+import { firebaseEnabled } from "./firebase";
 import type { PrayerLog, Profile, Task } from "./types";
 import { Button, Card, SectionHeader, TextField } from "./ui";
 
@@ -22,7 +21,7 @@ function maskKey(key: string): string {
 }
 
 export default function SettingsTab() {
-  const { profile, setProfile, tasks, prayers, replaceAll, sync, isAnonymous, accountLabel } = useAppData();
+  const { profile, setProfile, tasks, prayers, replaceAll, sync } = useAppData();
 
   const [apiKey, setApiKey] = useLocalStorage("gemini_api_key", "");
   const [aiModel, setAiModel] = useLocalStorage("ai_model", DEFAULT_OPENROUTER_MODEL);
@@ -31,10 +30,8 @@ export default function SettingsTab() {
   const [keyDraft, setKeyDraft] = useState("");
   const [modelDraft, setModelDraft] = useState(aiModel);
   const [editingKey, setEditingKey] = useState(false);
-  const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const [confirmWipe, setConfirmWipe] = useState(false);
-  const [showEmailAuth, setShowEmailAuth] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const draftProvider = detectProvider(keyDraft);
@@ -60,26 +57,6 @@ export default function SettingsTab() {
     setKeyDraft("");
     setEditingKey(false);
     setNotice("API key dipadam.");
-  }
-
-  async function handleSignIn() {
-    setBusy(true);
-    setNotice(null);
-    try {
-      await signInWithGoogle();
-      setNotice("Berjaya log masuk.");
-    } catch (err) {
-      const code = (err as { code?: string })?.code ?? "";
-      setNotice(
-        code.includes("popup-blocked")
-          ? "Popup disekat browser. Benarkan popup untuk laman ini."
-          : code.includes("popup-closed")
-            ? "Log masuk dibatalkan."
-            : "Log masuk gagal. Cuba lagi.",
-      );
-    } finally {
-      setBusy(false);
-    }
   }
 
   function exportData() {
@@ -153,9 +130,9 @@ export default function SettingsTab() {
         </Card>
       </section>
 
-      {/* Account: sign in / sign out live here, together with sync status */}
+      {/* Cloud sync status */}
       <section className="mb-7">
-        <SectionHeader title="Akaun" />
+        <SectionHeader title="Cloud" />
         <Card className="p-3">
           <div className="flex items-center gap-2">
             <span
@@ -173,44 +150,10 @@ export default function SettingsTab() {
               Data disimpan dalam browser ini sahaja. Ia hilang jika cache dikosongkan dan tidak muncul pada
               peranti lain. Sync cloud perlu config Firebase semasa build.
             </p>
-          ) : isAnonymous ? (
-            <>
-              <p className="mt-1.5 text-caption text-ink-2">
-                Data tersimpan di cloud dan terlindung, tetapi terikat pada browser ini. Log masuk untuk
-                membukanya pada telefon dan komputer yang sama.
-              </p>
-              <Button size="sm" className="mt-2.5 w-full" onClick={handleSignIn} disabled={busy}>
-                {busy ? "Membuka…" : "Log masuk dengan Google"}
-              </Button>
-
-              {!showEmailAuth ? (
-                <button
-                  type="button"
-                  onClick={() => setShowEmailAuth(true)}
-                  className="mt-2.5 text-caption font-semibold text-ink-3 underline underline-offset-2"
-                >
-                  Log masuk guna email &amp; kata laluan
-                </button>
-              ) : (
-                <div className="mt-3 animate-rise border-t border-border pt-3">
-                  <EmailAuthForm
-                    onSuccess={() => {
-                      setShowEmailAuth(false);
-                      setNotice("Berjaya log masuk.");
-                    }}
-                  />
-                </div>
-              )}
-            </>
           ) : (
-            <>
-              <p className="mt-1.5 text-caption text-ink-2">
-                Log masuk sebagai <span className="font-semibold text-ink">{accountLabel}</span>.
-              </p>
-              <Button variant="secondary" size="sm" className="mt-2.5 w-full" onClick={() => void signOut()}>
-                Log keluar
-              </Button>
-            </>
+            <p className="mt-1.5 text-caption text-ink-2">
+              Data dikongsi — semua pengguna app ini melihat dan menyunting set data yang sama.
+            </p>
           )}
         </Card>
       </section>
@@ -365,7 +308,7 @@ export default function SettingsTab() {
         </Card>
       </section>
 
-      <p className="pb-2 text-center text-caption text-ink-3">My Space — data peribadi, disimpan untuk anda.</p>
+      <p className="pb-2 text-center text-caption text-ink-3">My Space — data dikongsi, disimpan di cloud.</p>
     </div>
   );
 }

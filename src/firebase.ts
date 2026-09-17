@@ -170,24 +170,27 @@ export async function signOut(): Promise<void> {
   await authMod.signOut(auth);
 }
 
+/* Everyone shares the same single document. Any signed-in user (anonymous
+   counts) reads and writes this one doc, so all users see the same data. */
+const SHARED_STATE = ["shared", "state"] as const;
+
 export async function subscribeToState(
-  uid: string,
   onData: (state: CloudState | null) => void,
 ): Promise<() => void> {
   if (!firebaseEnabled) return () => {};
   const { db, storeMod } = await loadSdk();
   return storeMod.onSnapshot(
-    storeMod.doc(db, "users", uid),
+    storeMod.doc(db, ...SHARED_STATE),
     (snap) => onData(snap.exists() ? (snap.data() as CloudState) : null),
     () => onData(null),
   );
 }
 
-export async function pushState(uid: string, state: Omit<CloudState, "updatedAt">): Promise<void> {
+export async function pushState(state: Omit<CloudState, "updatedAt">): Promise<void> {
   if (!firebaseEnabled) return;
   const { db, storeMod } = await loadSdk();
   await storeMod.setDoc(
-    storeMod.doc(db, "users", uid),
+    storeMod.doc(db, ...SHARED_STATE),
     { ...state, updatedAt: storeMod.serverTimestamp() },
     { merge: true },
   );

@@ -5,9 +5,7 @@ import TodoTab from "./TodoTab";
 import SolatTab from "./SolatTab";
 import SettingsTab from "./SettingsTab";
 import SuccessCelebration from "./SuccessCelebration";
-import SignInGate from "./SignInGate";
 import { onCelebrate } from "./celebrate";
-import { useAppData } from "./appData";
 import { IconHome, IconList, IconMoon, IconSettings } from "./icons";
 
 export type Tab = "today" | "todo" | "solat" | "settings";
@@ -23,7 +21,6 @@ export default function App() {
   const [tab, setTab] = useState<Tab>("today");
   const [expandTaskId, setExpandTaskId] = useState<string | null>(null);
   const [celebrating, setCelebrating] = useState<string | null>(null);
-  const { needsSignInChoice, completeSignInChoice } = useAppData();
 
   useEffect(() => onCelebrate(setCelebrating), []);
 
@@ -33,8 +30,6 @@ export default function App() {
     setTab(next);
     setExpandTaskId(taskId ?? null);
   }
-
-  if (needsSignInChoice) return <SignInGate onDone={completeSignInChoice} />;
 
   return (
     <div className="min-h-screen bg-bg">

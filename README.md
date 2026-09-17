@@ -48,25 +48,23 @@ cache dikosongkan, dan boleh diakses dari beberapa peranti.
 ### Model keselamatan
 
 Config web Firebase **bukan rahsia** — Firebase menerbitkannya dalam bundle client
-secara reka bentuk. Ia mengenal pasti projek; ia tidak membenarkan apa-apa. Kawalan
-akses sebenar ada pada `firestore.rules`, yang mengehadkan setiap dokumen kepada
-`uid` pemiliknya.
+secara reka bentuk. Ia mengenal pasti projek; ia tidak membenarkan apa-apa.
 
-Sebab itu app log masuk secara **anonim** secara automatik: pengguna tidak nampak
-skrin login, tetapi setiap orang tetap terasing daripada data orang lain. Log masuk
-Google adalah naik taraf pilihan — ia memautkan akaun anonim sedia ada supaya data
-yang sama mengikut anda ke peranti lain.
+App ini disediakan sebagai **satu ruang dikongsi**: semua pengguna membaca dan
+menyunting **set data yang sama** (dokumen `shared/state` di Firestore). App log
+masuk secara **anonim** secara automatik — sesiapa yang membuka app terus boleh
+guna, tanpa skrin login dan tanpa akaun.
 
-> Tanpa auth, satu-satunya cara Firestore boleh dibaca dari client adalah dengan
-> rules terbuka, yang bermakna sesiapa yang membuka halaman ini boleh membaca dan
-> menulis semua data anda. Itu sebabnya auth tidak dijadikan pilihan.
+> Amaran: kerana semua orang berkongsi data yang sama, sesiapa yang mendapat URL
+> app ini boleh melihat DAN menyunting semua data. Jangan letak data sensitif di
+> sini; ini sesuai untuk app keluarga / komuniti yang sememangnya dikongsi.
 
 ### Langkah setup
 
 1. Cipta projek di [console.firebase.google.com](https://console.firebase.google.com).
 2. **Project settings → Your apps → Web** — daftar app, salin nilai config.
 3. **Build → Firestore Database → Create database** (production mode).
-4. **Build → Authentication → Sign-in method** — hidupkan **Anonymous** dan **Google**.
+4. **Build → Authentication → Sign-in method** — hidupkan **Anonymous**.
 5. Salin `.env.example` kepada `.env.local`, isi nilai dari langkah 2.
 6. Deploy rules:
 
@@ -75,13 +73,11 @@ yang sama mengikut anda ke peranti lain.
    npx firebase-tools deploy --only firestore:rules --project <project-id>
    ```
 
-7. Untuk deploy GitHub Pages, tambah nilai yang sama sebagai **repository
-   variables** (Settings → Secrets and variables → Actions → Variables):
+7. Untuk deploy Vercel, tambah nilai yang sama sebagai **environment variables**
+   dalam project Vercel (Settings → Environment Variables):
    `VITE_FIREBASE_API_KEY`, `VITE_FIREBASE_AUTH_DOMAIN`, `VITE_FIREBASE_PROJECT_ID`,
    `VITE_FIREBASE_STORAGE_BUCKET`, `VITE_FIREBASE_MESSAGING_SENDER_ID`,
    `VITE_FIREBASE_APP_ID`.
-8. **Authentication → Settings → Authorized domains** — tambah
-   `enquirykhai-blip.github.io` supaya log masuk Google berfungsi di production.
 
 ### Bekerja tanpa projek sebenar
 
@@ -95,12 +91,9 @@ npm run dev:cloud     # terminal kedua — guna .env.emulator
 
 ### Bagaimana sync berkelakuan
 
-- Keadaan disimpan sebagai satu dokumen bagi setiap pengguna: `users/{uid}`.
+- Keadaan disimpan sebagai satu dokumen dikongsi: `shared/state`.
 - Tulisan di-debounce 700ms, jadi satu rentetan suntingan menjadi satu tulisan.
 - Perubahan jauh sampai secara langsung melalui `onSnapshot` — tab lain dikemas
   kini tanpa reload.
 - localStorage kekal sebagai salinan tempatan, jadi app masih boleh dibuka dan
   dibaca sebelum sambungan cloud selesai.
-- Nota: penyelesaian konflik ialah last-write-wins pada keseluruhan dokumen. Untuk
-  satu pengguna ini memadai, tetapi suntingan serentak dalam keadaan offline pada
-  dua peranti boleh menyebabkan satu set kalah.

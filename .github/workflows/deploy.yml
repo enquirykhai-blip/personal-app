@@ -30,6 +30,7 @@ jobs:
       # local-only app, with the Firebase SDK excluded from the bundle.
       - run: npm run build
         env:
+          VITE_BASE: /personal-app/
           VITE_FIREBASE_API_KEY: ${{ vars.VITE_FIREBASE_API_KEY }}
           VITE_FIREBASE_AUTH_DOMAIN: ${{ vars.VITE_FIREBASE_AUTH_DOMAIN }}
           VITE_FIREBASE_PROJECT_ID: ${{ vars.VITE_FIREBASE_PROJECT_ID }}

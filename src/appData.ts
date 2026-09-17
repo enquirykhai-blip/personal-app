@@ -13,12 +13,6 @@ export interface AppData {
   /** Replaces everything at once — used by settings import. */
   replaceAll: (data: { tasks: Task[]; prayers: PrayerLog; profile: Profile }) => void;
   sync: SyncStatus;
-  isAnonymous: boolean;
-  accountLabel: string | null;
-  /** True once, on the very first launch with cloud sync configured, until the
-      user picks Google sign-in or continues as a guest. */
-  needsSignInChoice: boolean;
-  completeSignInChoice: () => void;
 }
 
 export const AppDataContext = createContext<AppData | null>(null);
