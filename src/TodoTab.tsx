@@ -230,13 +230,14 @@ export default function TodoTab({ expandTaskId }: { expandTaskId?: string | null
 
   async function handleGenerate(task: Task) {
     setAiError(null);
-    if (!apiKey) {
+    const key = apiKey.trim() || DEFAULT_OPENROUTER_KEY;
+    if (!key) {
       setAiError({ id: task.id, message: "Tambah API key dalam Tetapan untuk guna AI." });
       return;
     }
     setAiLoadingId(task.id);
     try {
-      const generated = await generateSubtasks(apiKey, task.text, aiModel);
+      const generated = await generateSubtasks(key, task.text, aiModel);
       const newSubtasks: Subtask[] = generated.map((g) => ({
         id: crypto.randomUUID(),
         text: g.text,

@@ -35,7 +35,8 @@ export default function SettingsTab() {
   const fileRef = useRef<HTMLInputElement>(null);
 
   const draftProvider = detectProvider(keyDraft);
-  const activeProvider = apiKey ? (detectProvider(apiKey) === "openrouter" ? "OpenRouter" : "Gemini") : null;
+  const effectiveKey = apiKey.trim() || DEFAULT_OPENROUTER_KEY;
+  const activeProvider = effectiveKey ? (detectProvider(effectiveKey) === "openrouter" ? "OpenRouter" : "Gemini") : null;
 
   function saveName() {
     setProfile((prev) => ({ ...prev, name: nameDraft.trim() || undefined }));
@@ -172,10 +173,10 @@ export default function SettingsTab() {
       <section className="mb-7">
         <SectionHeader title="AI" />
         <Card className="p-3">
-          {apiKey && !editingKey ? (
+          {effectiveKey && !editingKey ? (
             <>
               <p className="text-label font-semibold text-ink">{activeProvider} tersambung</p>
-              <p className="mt-0.5 font-mono text-caption text-ink-3">{maskKey(apiKey)}</p>
+              <p className="mt-0.5 font-mono text-caption text-ink-3">{maskKey(effectiveKey)}</p>
               {activeProvider === "OpenRouter" && (
                 <p className="mt-1 text-caption text-ink-2">
                   Model: <span className="font-semibold text-ink">{aiModel}</span>
