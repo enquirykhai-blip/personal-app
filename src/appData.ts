@@ -13,6 +13,7 @@ export interface AppData {
   /** Replaces everything at once — used by settings import. */
   replaceAll: (data: { tasks: Task[]; prayers: PrayerLog; profile: Profile }) => void;
   sync: SyncStatus;
+  signedOut: boolean;
 }
 
 export const AppDataContext = createContext<AppData | null>(null);

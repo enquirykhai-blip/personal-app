@@ -60,17 +60,29 @@ export type CloudState = {
     uid and mutates the user in place, so onAuthStateChanged never fires for
     it — only the ID token listener reliably picks up that isAnonymous just
     flipped to false. */
+let explicitlySignedOut = false;
+
 export async function startAuth(onUser: (user: User | null) => void): Promise<() => void> {
   if (!firebaseEnabled) return () => {};
   const { auth, authMod } = await loadSdk();
   return authMod.onIdTokenChanged(auth, (user) => {
     if (!user) {
-      // Anonymous by default: rules still isolate the data, no sign-in needed.
+      if (explicitlySignedOut) {
+        onUser(null);
+        return;
+      }
       authMod.signInAnonymously(auth).catch(() => onUser(null));
       return;
     }
     onUser(user);
   });
+}
+
+export async function signInAgain(): Promise<void> {
+  if (!firebaseEnabled) return;
+  explicitlySignedOut = false;
+  const { auth, authMod } = await loadSdk();
+  await authMod.signInAnonymously(auth);
 }
 
 /** Upgrades the anonymous account to Google so the same data follows the user to
@@ -166,6 +178,7 @@ export async function resetPassword(email: string): Promise<void> {
 
 export async function signOut(): Promise<void> {
   if (!firebaseEnabled) return;
+  explicitlySignedOut = true;
   const { auth, authMod } = await loadSdk();
   await authMod.signOut(auth);
 }

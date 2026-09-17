@@ -6,6 +6,8 @@ import SolatTab from "./SolatTab";
 import SettingsTab from "./SettingsTab";
 import SuccessCelebration from "./SuccessCelebration";
 import { onCelebrate } from "./celebrate";
+import { signInAgain } from "./firebase";
+import { useAppData } from "./appData";
 import { IconHome, IconList, IconMoon, IconSettings } from "./icons";
 
 export type Tab = "today" | "todo" | "solat" | "settings";
@@ -21,8 +23,27 @@ export default function App() {
   const [tab, setTab] = useState<Tab>("today");
   const [expandTaskId, setExpandTaskId] = useState<string | null>(null);
   const [celebrating, setCelebrating] = useState<string | null>(null);
+  const { signedOut } = useAppData();
 
   useEffect(() => onCelebrate(setCelebrating), []);
+
+  if (signedOut)
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center bg-bg px-6 text-center">
+        <p className="text-overline uppercase text-ink-3">My Space</p>
+        <h1 className="mt-1 text-display text-ink">Anda telah log keluar</h1>
+        <p className="mx-auto mt-2 max-w-xs text-body text-ink-2">
+          Log masuk semula untuk menyambung data cloud dengan semua pengguna.
+        </p>
+        <button
+          type="button"
+          onClick={() => void signInAgain()}
+          className="mt-4 rounded-full bg-brand px-6 py-2.5 text-label font-semibold text-white transition-colors hover:opacity-90 active:scale-95"
+        >
+          Log masuk semula
+        </button>
+      </div>
+    );
 
   /* A deep link carries an optional task to open, so "Pecahkan" on the Today
      screen lands on that task's steps instead of just switching tabs. */

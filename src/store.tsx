@@ -27,6 +27,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
 
   const [uid, setUid] = useState<string | null>(null);
   const [sync, setSync] = useState<SyncStatus>(firebaseEnabled ? "connecting" : "off");
+  const signedOut = firebaseEnabled && uid === null && sync === "off";
 
   /* Writes we originate must not be echoed back as remote changes. */
   const applyingRemote = useRef(false);
@@ -49,7 +50,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     let stop: (() => void) | undefined;
     startAuth((user) => {
       setUid(user?.uid ?? null);
-      if (!user) setSync("error");
+      if (!user) setSync("off");
     })
       .then((fn) => {
         stop = fn;
@@ -138,10 +139,10 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     () => ({
       tasks, prayers, profile,
       setTasks, setPrayers, setProfile, replaceAll,
-      sync,
+      sync, signedOut,
     }),
     [tasks, prayers, profile, setTasks, setPrayers, setProfile, replaceAll,
-     sync],
+     sync, signedOut],
   );
 
   return <AppDataContext.Provider value={value}>{children}</AppDataContext.Provider>;
