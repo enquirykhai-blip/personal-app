@@ -5,7 +5,7 @@ import { useAppData } from "./appData";
 import type { Subtask, Task, TaskCategory, TaskPriority } from "./types";
 import { isOverdue, sortTasks, subtaskProgress } from "./statsUtils";
 import { todayISO } from "./dateUtils";
-import { DEFAULT_OPENROUTER_MODEL, generateSubtasks } from "./ai";
+import { DEFAULT_OPENROUTER_KEY, DEFAULT_OPENROUTER_MODEL, generateSubtasks } from "./ai";
 import { DEFAULT_TIMER_MINUTES, durationLabel, formatClock } from "./timeUtils";
 import { celebrateTaskDone } from "./celebrate";
 import TaskRunner from "./TaskRunner";
@@ -76,7 +76,7 @@ interface EditDraft {
 export default function TodoTab({ expandTaskId }: { expandTaskId?: string | null }) {
   const { tasks, setTasks } = useAppData();
   /* Read-only here: the key and model are configured in Settings. */
-  const [apiKey] = useLocalStorage("gemini_api_key", "");
+  const [apiKey] = useLocalStorage("gemini_api_key", DEFAULT_OPENROUTER_KEY);
   const [aiModel] = useLocalStorage("ai_model", DEFAULT_OPENROUTER_MODEL);
 
   const [text, setText] = useState("");

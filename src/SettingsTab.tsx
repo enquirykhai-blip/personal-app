@@ -2,8 +2,8 @@ import { useRef, useState } from "react";
 import { cx } from "./cx";
 import { useAppData } from "./appData";
 import { useLocalStorage } from "./useLocalStorage";
-import { DEFAULT_OPENROUTER_MODEL, detectProvider } from "./ai";
-import { firebaseEnabled } from "./firebase";
+import { DEFAULT_OPENROUTER_KEY, DEFAULT_OPENROUTER_MODEL, detectProvider } from "./ai";
+import { firebaseEnabled, signOut } from "./firebase";
 import type { PrayerLog, Profile, Task } from "./types";
 import { Button, Card, SectionHeader, TextField } from "./ui";
 
@@ -23,7 +23,7 @@ function maskKey(key: string): string {
 export default function SettingsTab() {
   const { profile, setProfile, tasks, prayers, replaceAll, sync } = useAppData();
 
-  const [apiKey, setApiKey] = useLocalStorage("gemini_api_key", "");
+  const [apiKey, setApiKey] = useLocalStorage("gemini_api_key", DEFAULT_OPENROUTER_KEY);
   const [aiModel, setAiModel] = useLocalStorage("ai_model", DEFAULT_OPENROUTER_MODEL);
 
   const [nameDraft, setNameDraft] = useState(profile.name ?? "");
@@ -151,9 +151,19 @@ export default function SettingsTab() {
               peranti lain. Sync cloud perlu config Firebase semasa build.
             </p>
           ) : (
-            <p className="mt-1.5 text-caption text-ink-2">
-              Data dikongsi — semua pengguna app ini melihat dan menyunting set data yang sama.
-            </p>
+            <>
+              <p className="mt-1.5 text-caption text-ink-2">
+                Data dikongsi — semua pengguna app ini melihat dan menyunting set data yang sama.
+              </p>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="mt-2.5"
+                onClick={() => void signOut().then(() => setNotice("Sesi log keluar."))}
+              >
+                Log keluar
+              </Button>
+            </>
           )}
         </Card>
       </section>

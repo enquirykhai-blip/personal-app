@@ -7,6 +7,8 @@ export function detectProvider(apiKey: string): AiProvider {
 
 export const DEFAULT_OPENROUTER_MODEL = "openai/gpt-4o-mini";
 
+export const DEFAULT_OPENROUTER_KEY = import.meta.env.VITE_OPENROUTER_KEY ?? "";
+
 export interface GeneratedStep {
   emoji: string;
   text: string;
